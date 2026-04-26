@@ -63,32 +63,32 @@ const levels = [
       { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
     ]
   },
-
   {
-  title: "Level 3: Splitting",
-  instructions: "Use a prism to hit both targets simultaneously.",
-  hint: "The prism splits light into 3 rays. Place it in the path of the main beam.",
-  inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
-  targets: [
-    { pos: [1.5, 0.1, -1.5] },
-    { pos: [1.5, 0.1, 1.5] }
-  ],
-  fixedObjects: [
-    { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true }
-  ]
+    title: "Level 3: Splitting",
+    instructions: "Use a prism to hit both targets simultaneously.",
+    hint: "The prism splits light into 3 rays. Place it in the path of the main beam.",
+    inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
+    targets: [
+      { pos: [1.5, 0.1, -1.5] },
+      { pos: [1.5, 0.1, 1.5] }
+    ],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true }
+    ]
   },
   {
-  title: "Level 4: Zig-Zag",
-  instructions: "Use mirrors to navigate around the barriers to the target.",
-  hint: "Bounce the beam around the first wall, then use more mirrors to aim at the target.",
-  inventory: { laser: 0, mirror: 3, prism: 0, absorber: 0 },
-  targets: [{ pos: [-2, 0.1, -2] }],
-  fixedObjects: [
-    { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
-    { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
-    { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
-  ]
-  },  {
+    title: "Level 4: Zig-Zag",
+    instructions: "Use mirrors to navigate around the barriers to the target.",
+    hint: "Bounce the beam around the first wall, then use more mirrors to aim at the target.",
+    inventory: { laser: 0, mirror: 3, prism: 0, absorber: 0 },
+    targets: [{ pos: [-2, 0.1, -2] }],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
+      { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
+      { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
+    ]
+  },
+  {
     title: "Level 5: The Perimeter",
     instructions: "The target is far away. Use mirrors to bounce light along the edges.",
     hint: "Keep the beam close to the grid edges to avoid missing the long-distance target.",
