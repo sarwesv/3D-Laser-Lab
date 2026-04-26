@@ -548,8 +548,8 @@ function init() {
     if (!acc) return;
     let accZ = acc.z || 0;
     
-    if (Math.abs(accZ) > 0.4) {
-      motionVelocity -= accZ * 0.025;
+    if (Math.abs(accZ) > 0.8) {
+      motionVelocity -= accZ * 0.015;
       if (!hasShownMotionHint) {
         showNotification('Walking detected!');
         hasShownMotionHint = true;
@@ -1250,18 +1250,21 @@ function updateCamera() {
     camera.position.set(cameraTarget.x, 1.2, cameraTarget.z);
 
     // 2. ROTATION: Native Device -> World Mapping
+    // Flip alpha sign to fix "move left, moves right" inversion
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
-    const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
+    
+    // TILT REMOVAL: gamma is set to 0 as requested
+    const gamma = 0;
 
     // Use a robust order and mapping
     camera.rotation.order = 'YXZ';
-    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma); 
+    camera.rotation.set(beta - Math.PI/2, alpha, gamma); 
     
     // 3. DEBUG: Update live camera numbers
     const camEl = document.getElementById('val-cam');
     if (camEl) {
-      camEl.innerText = `${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
+      camEl.innerText = `F:${frameCount} | C:${camera.rotation.y.toFixed(2)}`;
     }
 
     camera.updateMatrixWorld(true);
@@ -1364,8 +1367,6 @@ function render() {
     if (camEl) {
       camEl.innerText = `ERR: ${err.message}`;
       camEl.style.color = '#ff0000';
-      camEl.style.fontSize = '0.6rem';
-      camEl.style.background = 'rgba(255,255,255,0.9)';
     }
     console.error(err);
   }
