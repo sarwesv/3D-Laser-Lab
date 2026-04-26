@@ -60,9 +60,24 @@ body, html {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 200px;
-  max-width: 320px;
+  min-width: 250px;
+  max-width: 450px;
   z-index: 100;
+}
+
+#btn-recenter {
+  margin-top: 5px;
+  background: var(--accent);
+  color: white;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 0.6rem;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .liquid-title {
@@ -333,9 +348,9 @@ input[type="range"]::-webkit-slider-thumb {
   #status-panel {
     top: 10px;
     left: 10px;
-    min-width: 180px;
-    max-width: 220px;
-    padding: 8px 12px;
+    min-width: 220px;
+    max-width: 300px;
+    padding: 10px;
   }
 
   .liquid-title {
@@ -405,7 +420,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 @media (max-width: 400px) {
   #status-panel {
-    max-width: 140px;
+    min-width: 200px;
+    max-width: 250px;
   }
   
   #actions-container .btn-secondary-pill {

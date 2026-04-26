@@ -504,19 +504,22 @@ function init() {
 
   const btnRacing = document.getElementById('btn-mode-racing');
   const btnGyro = document.getElementById('btn-gyro');
+  const btnRecenter = document.getElementById('btn-recenter');
 
   // Gyro & Motion Handling
   let hasReceivedOrientation = false;
+  
+  window.recenterGyro = () => {
+    gyroBaseQuaternion.copy(gyroQuaternion).invert();
+    showNotification('View Recentered');
+  };
+
   const onDeviceOrientation = (e) => {
-    // Check for any data
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('AR Sensors Active!');
       hasReceivedOrientation = true;
-      
       // Auto-calibrate on first data
-      setTimeout(() => {
-        gyroBaseQuaternion.copy(gyroQuaternion).invert();
-      }, 500);
+      setTimeout(window.recenterGyro, 500);
     }
     
     // alpha (0-360), beta (-180, 180), gamma (-90, 90)
@@ -524,7 +527,6 @@ function init() {
     const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;
     const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0;
     
-    // Modern screen orientation check
     const screenAngle = (window.screen && window.screen.orientation) ? window.screen.orientation.angle : (window.orientation || 0);
     const orient = THREE.MathUtils.degToRad(screenAngle);
 
@@ -540,16 +542,31 @@ function init() {
     gyroQuaternion.multiply(q0);
   };
 
+  let motionVelocity = 0;
+  let hasShownMotionHint = false;
+  const onDeviceMotion = (e) => {
+    const acc = e.acceleration || e.accelerationIncludingGravity;
+    if (!acc) return;
+    let accZ = acc.z || 0;
+    if (Math.abs(accZ) > 1.0) {
+      motionVelocity -= accZ * 0.015;
+      if (!hasShownMotionHint) {
+        showNotification('Movement detected!');
+        hasShownMotionHint = true;
+      }
+    }
+    motionVelocity *= 0.85;
+  };
+
   btnGyro.addEventListener('click', async () => {
     if (!isGyroActive) {
       let granted = false;
       try {
-        // iOS 13+ Request
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           const result = await DeviceOrientationEvent.requestPermission();
           granted = (result === 'granted');
         } else {
-          granted = true; // Android/Desktop
+          granted = true; 
         }
         
         if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -559,10 +576,11 @@ function init() {
 
       if (granted) {
         window.addEventListener('deviceorientation', onDeviceOrientation);
-        window.addEventListener('deviceorientationabsolute', onDeviceOrientation); // Android fallback
+        window.addEventListener('deviceorientationabsolute', onDeviceOrientation); 
         window.addEventListener('devicemotion', onDeviceMotion);
         isGyroActive = true;
         btnGyro.classList.add('active');
+        btnRecenter.style.display = 'flex';
         showNotification('AR Mode Enabled');
       } else {
         showNotification('Sensor permission required for AR.');
@@ -574,9 +592,12 @@ function init() {
       isGyroActive = false;
       hasReceivedOrientation = false;
       btnGyro.classList.remove('active');
+      btnRecenter.style.display = 'none';
       showNotification('AR Mode Disabled');
     }
   });
+
+  btnRecenter.addEventListener('click', window.recenterGyro);
 
   btnSandbox.addEventListener('click', () => {
     currentMode = 'sandbox';
