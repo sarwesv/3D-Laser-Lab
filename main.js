@@ -180,7 +180,7 @@ function generateRandomLevel(index) {
   return {
     title: `Level ${index + 1}: Random Challenge`,
     instructions: `Navigate the beam using ${numMirrors} mirror${numMirrors > 1 ? 's' : ''}.`,
-    hint: `Try placing your first mirror at [${pathSegments[0].end.x}, ${pathSegments[0].end.z}] to redirect the beam.`,
+    hint: `Follow the laser beam and place your first mirror where it needs to turn to reach the target.`,
     inventory: { laser: 0, mirror: numMirrors, prism: 0, absorber: 0 },
     targets: [{ pos: [targetPosVec.x, 0.1, targetPosVec.z] }],
     fixedObjects: [
