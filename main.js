@@ -508,102 +508,73 @@ function init() {
   // Gyro & Motion Handling
   let hasReceivedOrientation = false;
   const onDeviceOrientation = (e) => {
+    // Check for any data
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
-      showNotification('Sensors active! Point around.');
+      showNotification('AR Sensors Active!');
       hasReceivedOrientation = true;
+      
+      // Auto-calibrate on first data
+      setTimeout(() => {
+        gyroBaseQuaternion.copy(gyroQuaternion).invert();
+      }, 500);
     }
     
-    // Standard "Magic Window" Mapping
+    // alpha (0-360), beta (-180, 180), gamma (-90, 90)
     const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0;
     const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;
     const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0;
-    const orient = window.orientation ? THREE.MathUtils.degToRad(window.orientation) : 0;
+    
+    // Modern screen orientation check
+    const screenAngle = (window.screen && window.screen.orientation) ? window.screen.orientation.angle : (window.orientation || 0);
+    const orient = THREE.MathUtils.degToRad(screenAngle);
 
     const euler = new THREE.Euler();
     const q0 = new THREE.Quaternion();
     const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -90 deg around X
 
-    euler.set(beta, alpha, -gamma, 'YXZ'); // Device coordinates
-    gyroQuaternion.setFromEuler(euler);    // Convert to quaternion
-    gyroQuaternion.multiply(q1);           // Adjust to world coordinates
+    euler.set(beta, alpha, -gamma, 'YXZ'); 
+    gyroQuaternion.setFromEuler(euler);    
+    gyroQuaternion.multiply(q1);           
     
-    // Screen orientation correction
     q0.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -orient);
     gyroQuaternion.multiply(q0);
   };
 
-  let motionVelocity = 0;
-  let hasShownMotionHint = false;
-  const onDeviceMotion = (e) => {
-    // Some devices use 'acceleration', others use 'accelerationIncludingGravity'
-    const acc = e.acceleration || e.accelerationIncludingGravity;
-    if (!acc) return;
-
-    // acc.z is forward/backward relative to the screen
-    // On many devices, z is inverted or scaled differently
-    let accZ = acc.z || 0;
-    
-    // If using accelerationIncludingGravity, we'd need to filter gravity out,
-    // but for simple 'nudge' detection, just a high-pass filter (deadzone) works.
-    if (Math.abs(accZ) > 1.0) {
-      motionVelocity -= accZ * 0.015; // Increased sensitivity
-      
-      if (!hasShownMotionHint) {
-        showNotification('Movement detected!');
-        hasShownMotionHint = true;
-      }
-    }
-    motionVelocity *= 0.85; // Slightly less friction for longer glides
-  };
-
   btnGyro.addEventListener('click', async () => {
     if (!isGyroActive) {
-      // Request Permission (Required for iOS)
-      let orientationGranted = false;
-      let motionGranted = false;
-
+      let granted = false;
       try {
+        // iOS 13+ Request
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-          const response = await DeviceOrientationEvent.requestPermission();
-          orientationGranted = (response === 'granted');
+          const result = await DeviceOrientationEvent.requestPermission();
+          granted = (result === 'granted');
         } else {
-          orientationGranted = true; // Assume granted on Android/Desktop if API exists
+          granted = true; // Android/Desktop
         }
-
+        
         if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-          const response = await DeviceMotionEvent.requestPermission();
-          motionGranted = (response === 'granted');
-        } else {
-          motionGranted = true;
+          await DeviceMotionEvent.requestPermission();
         }
+      } catch (e) { console.error(e); }
 
-        if (!orientationGranted) {
-          showNotification('Orientation sensor permission denied.');
-          return;
-        }
-      } catch (error) {
-        showNotification('Error requesting sensor permissions.');
-        console.error(error);
-        return;
+      if (granted) {
+        window.addEventListener('deviceorientation', onDeviceOrientation);
+        window.addEventListener('deviceorientationabsolute', onDeviceOrientation); // Android fallback
+        window.addEventListener('devicemotion', onDeviceMotion);
+        isGyroActive = true;
+        btnGyro.classList.add('active');
+        showNotification('AR Mode Enabled');
+      } else {
+        showNotification('Sensor permission required for AR.');
       }
-
-      window.addEventListener('deviceorientation', onDeviceOrientation);
-      window.addEventListener('devicemotion', onDeviceMotion);
-      isGyroActive = true;
-      btnGyro.classList.add('active');
-      showNotification('AR Mode ON: Point phone and walk!');
-      
-      // Calibrate base offset after sensors settle (1 second)
-      setTimeout(() => {
-        gyroBaseQuaternion.copy(gyroQuaternion).invert();
-      }, 1000);
     } else {
       window.removeEventListener('deviceorientation', onDeviceOrientation);
+      window.removeEventListener('deviceorientationabsolute', onDeviceOrientation);
       window.removeEventListener('devicemotion', onDeviceMotion);
-      motionVelocity = 0;
       isGyroActive = false;
+      hasReceivedOrientation = false;
       btnGyro.classList.remove('active');
-      showNotification('AR Mode: OFF');
+      showNotification('AR Mode Disabled');
     }
   });
 
