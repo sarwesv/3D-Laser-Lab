@@ -1247,15 +1247,16 @@ function updateCamera() {
     // 1. POSITION: Eye level at cameraTarget
     camera.position.set(cameraTarget.x, 1.2, cameraTarget.z);
 
-    // 2. ROTATION: Build a clean orientation
+    // 2. ROTATION: AUTHORITATIVE QUATERNION
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
     const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
 
-    camera.rotation.order = 'YXZ';
-    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma);
+    // Build orientation from Euler but apply to Quaternion
+    const euler = new THREE.Euler(beta - Math.PI/2, -alpha, -gamma, 'YXZ');
+    camera.quaternion.setFromEuler(euler);
     
-    // Explicitly force matrix update
+    // IMPORTANT: In AR mode, we MUST NOT call camera.lookAt()
     camera.updateMatrixWorld(true);
   } else {
     // Standard Third-Person Orbit View
