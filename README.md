@@ -64,4 +64,4 @@ The project is configured for easy deployment with Vite. Simply run `npm run bui
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
-Created by [SarV](https://github.com/sarwesv)
+Created by [Sarwesv](https://github.com/sarwesv)
