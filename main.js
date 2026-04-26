@@ -213,6 +213,28 @@ function showNotification(message) {
   }, 3000);
 }
 
+// Help State
+let helpActive = false;
+let helpStep = 0;
+const helpSteps = [
+  "Welcome to 3D Laser Lab! Let's get started.",
+  "1. Select a LASER 🔦 from the dock and click on the floor to place it.",
+  "2. Select a MIRROR 🪞 and place it in the laser's path.",
+  "3. Click a placed mirror to see ROTATION SLIDERS in the bottom-right.",
+  "4. Click START to fire the laser!",
+  "Great job! You've learned the basics. Enjoy experimenting!"
+];
+
+function advanceHelp(requiredStep) {
+  if (!helpActive || helpStep !== requiredStep) return;
+  helpStep++;
+  if (helpStep < helpSteps.length) {
+    showNotification(helpSteps[helpStep]);
+  } else {
+    helpActive = false;
+  }
+}
+
 function init() {
   container = document.getElementById('container');
 
@@ -298,6 +320,8 @@ function init() {
     btn.textContent = isLaserActive ? 'Stop Laser' : 'Start Laser';
     btn.classList.toggle('active', isLaserActive);
     updateLaser();
+
+    if (isLaserActive) advanceHelp(4);
   });
 
   document.getElementById('btn-grid-toggle').addEventListener('click', () => {
@@ -424,24 +448,10 @@ function init() {
   });
 
   document.getElementById('btn-help').addEventListener('click', () => {
-    const helpSteps = [
-      "Welcome to 3D Laser Lab!",
-      "1. Select a LASER 🔦 from the dock and click on the floor to place it.",
-      "2. Select a MIRROR 🪞 and place it in the laser's path.",
-      "3. Click a placed mirror to see ROTATION SLIDERS in the bottom-right.",
-      "4. Click START to fire the laser and see if you hit the target!",
-      "Try making a simple L-shape bounce with 1 mirror!"
-    ];
-    
-    let step = 0;
-    const showNextStep = () => {
-      if (step < helpSteps.length) {
-        showNotification(helpSteps[step]);
-        step++;
-        setTimeout(showNextStep, 4000);
-      }
-    };
-    showNextStep();
+    helpActive = true;
+    helpStep = 0;
+    showNotification(helpSteps[0]);
+    setTimeout(() => advanceHelp(0), 3000);
   });
 
   const sliderH = document.getElementById('rotation-slider-h');
@@ -599,6 +609,9 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
   scene.add(mesh);
   objects.push(mesh);
   if (isLaserActive) updateLaser();
+
+  if (type === 'laser') advanceHelp(1);
+  if (type === 'mirror') advanceHelp(2);
 }
 
 function updateLaser() {
@@ -847,6 +860,8 @@ function setup3DInteractions() {
             document.getElementById('rotation-container').style.display = 'flex';
             document.getElementById('rotation-slider-h').value = (obj.userData.rotationH || 0) * (180 / Math.PI);
             document.getElementById('rotation-slider-v').value = (obj.userData.rotationV || 0) * (180 / Math.PI);
+            
+            if (obj.userData.type === 'mirror') advanceHelp(3);
           }
           return;
         }
