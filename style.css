@@ -45,10 +45,39 @@ body, html {
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
   gap: 15px;
   pointer-events: auto;
+  flex-wrap: wrap;
+}
+
+#level-overlay {
+  background: var(--bg-glass-heavy);
+  padding: 10px 20px;
+  border-radius: 15px;
+  text-align: left;
+  min-width: 200px;
+  display: none;
+}
+
+#level-overlay h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+#level-overlay p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+#central-ui {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
 }
 
 #inventory-container {
@@ -415,30 +444,4 @@ input[type="range"]::-webkit-slider-thumb {
   display: none;
 }
 
-/* Level Overlay */
-#level-overlay {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-glass);
-  backdrop-filter: blur(10px);
-  padding: 15px 30px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-  pointer-events: none;
-  display: none;
-  z-index: 100;
-}
-
-#level-overlay h2 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: var(--primary);
-}
-
-#level-overlay p {
-  margin: 5px 0 0;
-  font-size: 0.9rem;
-}
+/* Level Overlay is now moved up */

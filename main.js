@@ -48,16 +48,16 @@ const levels = [
     title: "Level 1: The Basics",
     instructions: "Place a laser emitter to hit the target directly.",
     inventory: { laser: 1, mirror: 0, prism: 0, absorber: 0 },
-    targets: [{ pos: [0, 0.5, -2] }],
+    targets: [{ pos: [0, 0.1, -2] }],
     fixedObjects: []
   },
   {
     title: "Level 2: Reflection",
     instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
     inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
-    targets: [{ pos: [2, 0.5, 0] }],
+    targets: [{ pos: [2, 0.1, 0] }],
     fixedObjects: [
-      { type: 'laser', pos: [-2, 0.02, 0], rotH: -Math.PI/2, rotV: 0, fixed: true },
+      { type: 'laser', pos: [-2, 0.05, 0], rotH: -Math.PI/2, rotV: 0, fixed: true },
       { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
     ]
   },
@@ -66,11 +66,11 @@ const levels = [
     instructions: "Use a prism to hit both targets simultaneously.",
     inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
     targets: [
-      { pos: [1.5, 0.5, -1.5] },
-      { pos: [1.5, 0.5, 1.5] }
+      { pos: [1.5, 0.1, -1.5] },
+      { pos: [1.5, 0.1, 1.5] }
     ],
     fixedObjects: [
-      { type: 'laser', pos: [-2, 0.02, 0], rotH: -Math.PI/2, rotV: 0, fixed: true }
+      { type: 'laser', pos: [-2, 0.05, 0], rotH: -Math.PI/2, rotV: 0, fixed: true }
     ]
   }
 ];
@@ -402,7 +402,7 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
     mesh.userData.rotationV = currentRotationV;
     if (savedPos) mesh.position.fromArray(savedPos);
     else if (matrix) mesh.position.setFromMatrixPosition(matrix);
-    mesh.position.y = 0.02;
+    mesh.position.y = 0.05;
     mesh.rotation.order = 'YXZ';
     mesh.rotation.y = currentRotationH;
     mesh.rotation.x = Math.PI / 2 - currentRotationV;
@@ -503,7 +503,11 @@ function updateLaser() {
 
         if (hit.object.userData && hit.object.userData.isTarget) {
           hit.object.userData.active = true;
-          // Lasers pass through targets
+          // Accumulate distance up to the target
+          totalDist += hit.distance;
+          pathPoints.push(hit.point.clone());
+          distances.push(totalDist);
+          // Continue ray from the target point
           currentPos.copy(hit.point).add(currentDir.clone().multiplyScalar(0.01));
           continue; 
         }
