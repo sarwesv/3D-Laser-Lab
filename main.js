@@ -513,13 +513,23 @@ function init() {
       hasReceivedOrientation = true;
     }
     
-    // Convert to Radians
-    const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0; // Z
-    const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;   // X'
-    const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0; // Y''
+    // Standard "Magic Window" Mapping
+    const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0;
+    const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;
+    const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0;
+    const orient = window.orientation ? THREE.MathUtils.degToRad(window.orientation) : 0;
 
-    const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-    gyroQuaternion.setFromEuler(euler);
+    const euler = new THREE.Euler();
+    const q0 = new THREE.Quaternion();
+    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -90 deg around X
+
+    euler.set(beta, alpha, -gamma, 'YXZ'); // Device coordinates
+    gyroQuaternion.setFromEuler(euler);    // Convert to quaternion
+    gyroQuaternion.multiply(q1);           // Adjust to world coordinates
+    
+    // Screen orientation correction
+    q0.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -orient);
+    gyroQuaternion.multiply(q0);
   };
 
   let motionVelocity = 0;
@@ -583,10 +593,10 @@ function init() {
       btnGyro.classList.add('active');
       showNotification('AR Mode ON: Point phone and walk!');
       
-      // Calibrate base offset after sensors settle
+      // Calibrate base offset after sensors settle (1 second)
       setTimeout(() => {
         gyroBaseQuaternion.copy(gyroQuaternion).invert();
-      }, 500);
+      }, 1000);
     } else {
       window.removeEventListener('deviceorientation', onDeviceOrientation);
       window.removeEventListener('devicemotion', onDeviceMotion);
@@ -1233,12 +1243,13 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // Combine base offset with current device rotation
+    // Apply full gyro rotation
     camera.quaternion.copy(gyroBaseQuaternion).multiply(gyroQuaternion);
     
-    // Position camera based on rotation and radius
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    camera.position.copy(cameraTarget).sub(forward.multiplyScalar(cameraOrbit.radius));
+    // Position camera based on its orientation and orbit radius
+    const direction = new THREE.Vector3(0, 0, 1);
+    direction.applyQuaternion(camera.quaternion);
+    camera.position.copy(cameraTarget).add(direction.multiplyScalar(cameraOrbit.radius));
   } else {
     camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
     camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
