@@ -1243,20 +1243,29 @@ function setup3DInteractions() {
 
 function updateCamera() {
   if (!camera) return;
+  
+  // FORCE AUTO UPDATE
+  camera.matrixAutoUpdate = true;
+
   if (isGyroActive) {
     // 1. POSITION: Eye level at cameraTarget
     camera.position.set(cameraTarget.x, 1.2, cameraTarget.z);
 
-    // 2. ROTATION: AUTHORITATIVE QUATERNION
+    // 2. ROTATION: Native Device -> World Mapping
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
     const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
 
-    // Build orientation from Euler but apply to Quaternion
-    const euler = new THREE.Euler(beta - Math.PI/2, -alpha, -gamma, 'YXZ');
-    camera.quaternion.setFromEuler(euler);
+    // Use a robust order and mapping
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma); 
     
-    // IMPORTANT: In AR mode, we MUST NOT call camera.lookAt()
+    // 3. DEBUG: Update live camera numbers
+    const camEl = document.getElementById('val-cam');
+    if (camEl) {
+      camEl.innerText = `${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
+    }
+
     camera.updateMatrixWorld(true);
   } else {
     // Standard Third-Person Orbit View
@@ -1336,7 +1345,13 @@ function render() {
       beam.visible = true;
     });
   } else if (!isLaserActive) { laserBeams.forEach(b => b.visible = false); }
-  if (composer) { composer.render(); } else { renderer.render(scene, camera); }
+  if (composer) { 
+    // FORCE SYNC composer camera
+    if (composer.passes[0]) composer.passes[0].camera = camera;
+    composer.render(); 
+  } else { 
+    renderer.render(scene, camera); 
+  }
 }
 
 function clearAll() {
