@@ -53,16 +53,17 @@ const levels = [
     fixedObjects: []
   },
   {
-  title: "Level 2: Reflection",
-  instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
-  hint: "Place a mirror before the beam hits the obstacle, then rotate it 45 degrees.",
-  inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
-  targets: [{ pos: [-1, 0.1, 2] }],
-  fixedObjects: [
-    { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true },
-    { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
-  ]
+    title: "Level 2: Reflection",
+    instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
+    hint: "Place a mirror before the beam hits the obstacle, then rotate it 45 degrees.",
+    inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
+    targets: [{ pos: [-1, 0.1, 2] }],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true },
+      { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
+    ]
   },
+
   {
   title: "Level 3: Splitting",
   instructions: "Use a prism to hit both targets simultaneously.",
@@ -275,10 +276,10 @@ function init() {
         document.getElementById('rotation-container').style.display = 'none';
       }
       document.querySelectorAll('.inventory-item').forEach(i => {
-        if (i.id !== 'btn-delete') i.style.background = '';
+        i.classList.remove('active');
       });
       if (selectedItemType) {
-        item.style.background = 'rgba(255, 255, 255, 0.2)';
+        item.classList.add('active');
         updateGhost();
       } else {
         removeGhost();
@@ -312,12 +313,6 @@ function init() {
     }
   });
 
-  document.getElementById('btn-toggle-menu').addEventListener('click', () => {
-    const menu = document.getElementById('action-menu');
-    const isCollapsed = menu.classList.toggle('collapsed');
-    document.getElementById('btn-toggle-menu').innerText = isCollapsed ? '⚙️' : '❌';
-  });
-
   document.getElementById('btn-clear').addEventListener('click', () => {
     if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
       clearAll();
@@ -329,7 +324,7 @@ function init() {
 
   const btnSandbox = document.getElementById('btn-mode-sandbox');
   const btnChallenges = document.getElementById('btn-mode-challenges');
-  const levelOverlay = document.getElementById('level-overlay');
+  const levelOverlay = document.getElementById('level-info');
 
   window.updateInventoryUI = () => {
     Object.keys(inventoryCounts).forEach(type => {
@@ -472,8 +467,8 @@ function updateGhost() {
     ghostObject = new THREE.Mesh(geometry, material);
     ghostObject.renderOrder = 999;
     ghostObject.rotation.order = 'YXZ';
-    ghostObject.rotation.x = -Math.PI / 2;
-    document.getElementById('rotation-container').style.display = 'block';
+    ghostObject.rotation.x = Math.PI / 2; // Point forward along Z
+    document.getElementById('rotation-container').style.display = 'flex';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
     document.getElementById('rotation-slider-v').style.display = 'block';
@@ -482,7 +477,7 @@ function updateGhost() {
     material = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5, depthTest: false });
     ghostObject = new THREE.Mesh(geometry, material);
     ghostObject.renderOrder = 999;
-    document.getElementById('rotation-container').style.display = 'block';
+    document.getElementById('rotation-container').style.display = 'flex';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
     document.getElementById('rotation-slider-v').style.display = 'block';
@@ -575,13 +570,26 @@ function updateLaser() {
     laserBeams = [];
     return;
   }
-  const emitters = objects.filter(o => o.userData.type === 'laser').map(o => ({
-    pos: o.position.clone(),
-    quat: o.quaternion.clone()
-  }));
+  const emitters = [];
+  
+  // Real emitters
+  objects.filter(o => o.userData.type === 'laser').forEach(o => {
+    emitters.push({ 
+      pos: o.position.clone(), 
+      quat: o.quaternion.clone(),
+      isGhost: false 
+    });
+  });
+
+  // Ghost emitter (for previewing path before placing)
   if (selectedItemType === 'laser' && ghostObject && ghostObject.visible) {
-    emitters.push({ pos: ghostObject.position.clone(), quat: ghostObject.quaternion.clone() });
+    emitters.push({ 
+      pos: ghostObject.position.clone(), 
+      quat: ghostObject.quaternion.clone(),
+      isGhost: true 
+    });
   }
+
   if (emitters.length === 0) {
     laserBeams.forEach(b => b.visible = false);
     return;
@@ -591,19 +599,29 @@ function updateLaser() {
   emitters.forEach(e => {
     const initialDir = new THREE.Vector3(0, 0, -1).applyQuaternion(e.quat).normalize();
     const emitterTip = e.pos.clone().add(initialDir.clone().multiplyScalar(0.05));
-    rayQueue.push({ pos: emitterTip, dir: initialDir, depth: 0, color: 0xffffff });
+    rayQueue.push({ 
+      pos: emitterTip, 
+      dir: initialDir, 
+      depth: 0, 
+      color: 0xffffff,
+      canActivate: !e.isGhost && isLaserActive // ONLY real lasers that are "ON" can activate
+    });
   });
   const maxDepth = 24;
   const raycaster = new THREE.Raycaster();
+  // Reset targets
   targetObjects.forEach(t => t.userData.active = false);
+
   while (rayQueue.length > 0 && allPaths.length < 128) {
-    const { pos, dir, depth, color } = rayQueue.shift();
+    const { pos, dir, depth, color, canActivate } = rayQueue.shift();
     if (depth > maxDepth) continue;
+
     const pathPoints = [pos.clone()];
     const distances = [0];
     let currentPos = pos.clone();
     let currentDir = dir.clone();
     let totalDist = 0;
+
     let branchFinished = false;
     while (!branchFinished) {
       raycaster.set(currentPos, currentDir);
@@ -613,7 +631,10 @@ function updateLaser() {
       if (intersects.length > 0) {
         const hit = intersects[0];
         if (hit.object.userData && hit.object.userData.isTarget) {
-          hit.object.userData.active = true;
+          // ONLY activate targets if this specific ray is allowed to
+          if (canActivate) {
+            hit.object.userData.active = true;
+          }
           totalDist += hit.distance;
           pathPoints.push(hit.point.clone());
           distances.push(totalDist);
@@ -626,14 +647,26 @@ function updateLaser() {
         if (hit.object.userData && hit.object.userData.type === 'mirror') {
           const normal = hit.face.normal.clone().applyMatrix4(new THREE.Matrix4().extractRotation(hit.object.matrixWorld));
           currentDir.reflect(normal).normalize();
-          rayQueue.push({ pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), dir: currentDir.clone(), depth: depth + 1, color: color });
+          rayQueue.push({ 
+            pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), 
+            dir: currentDir.clone(), 
+            depth: depth + 1, 
+            color: color,
+            canActivate: canActivate 
+          });
           branchFinished = true;
         } else if (hit.object.userData && hit.object.userData.type === 'prism') {
           [{ angle: -Math.PI/4, color: (color === 0xffffff) ? 0xff0000 : color }, { angle: 0, color: (color === 0xffffff) ? 0x00ff00 : color }, { angle: Math.PI/4, color: (color === 0xffffff) ? 0x0000ff : color }].forEach(split => {
             const splitDir = currentDir.clone();
             const axis = new THREE.Vector3(0, 1, 0); // Horizontal split
             splitDir.applyAxisAngle(axis, split.angle);
-            rayQueue.push({ pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), dir: splitDir, depth: depth + 1, color: split.color });
+            rayQueue.push({ 
+              pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), 
+              dir: splitDir, 
+              depth: depth + 1, 
+              color: split.color,
+              canActivate: canActivate // Pass down the activation permission
+            });
           });
           branchFinished = true;
         } else {
@@ -670,7 +703,7 @@ function updateLaser() {
       t.material.emissive.setHex(0x000000);
     }
   });
-  if (currentMode === 'challenges' && targetObjects.length > 0 && !isLevelCompleting) {
+  if (currentMode === 'challenges' && targetObjects.length > 0 && !isLevelCompleting && isLaserActive) {
     if (targetObjects.every(t => t.userData.active)) {
       isLevelCompleting = true;
       setTimeout(() => {
@@ -774,7 +807,7 @@ function setup3DInteractions() {
             document.getElementById('rotation-container').style.display = 'none';
             showNotification("This object is fixed and cannot be rotated.");
           } else {
-            document.getElementById('rotation-container').style.display = 'block';
+            document.getElementById('rotation-container').style.display = 'flex';
             document.getElementById('rotation-slider-h').value = (obj.userData.rotationH || 0) * (180 / Math.PI);
             document.getElementById('rotation-slider-v').value = (obj.userData.rotationV || 0) * (180 / Math.PI);
           }
