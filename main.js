@@ -25,7 +25,8 @@ let cameraTarget = new THREE.Vector3(0, 0, 0);
 let isInfiniteGrid = false;
 let isGyroActive = false;
 let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
-let gyroOffset = 0; // For centering
+let gyroQuaternion = new THREE.Quaternion();
+let gyroBaseQuaternion = new THREE.Quaternion();
 
 let selectedObject = null;
 let objects = [];
@@ -507,13 +508,18 @@ function init() {
   // Gyro & Motion Handling
   let hasReceivedOrientation = false;
   const onDeviceOrientation = (e) => {
-    if (!hasReceivedOrientation && (e.alpha || e.beta || e.gamma)) {
+    if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('Sensors active! Point around.');
       hasReceivedOrientation = true;
     }
-    deviceOrientation.alpha = e.alpha || 0;
-    deviceOrientation.beta = e.beta || 0;
-    deviceOrientation.gamma = e.gamma || 0;
+    
+    // Convert to Radians
+    const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0; // Z
+    const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;   // X'
+    const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0; // Y''
+
+    const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+    gyroQuaternion.setFromEuler(euler);
   };
 
   let motionVelocity = 0;
@@ -577,9 +583,9 @@ function init() {
       btnGyro.classList.add('active');
       showNotification('AR Mode ON: Point phone and walk!');
       
-      // Wait a moment for values to settle then set offset
+      // Calibrate base offset after sensors settle
       setTimeout(() => {
-        gyroOffset = deviceOrientation.alpha;
+        gyroBaseQuaternion.copy(gyroQuaternion).invert();
       }, 500);
     } else {
       window.removeEventListener('deviceorientation', onDeviceOrientation);
@@ -1227,15 +1233,18 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // Map Gyro to Orbit
-    cameraOrbit.theta = (deviceOrientation.alpha - gyroOffset) * (Math.PI / 180);
-    cameraOrbit.phi = Math.max(0.1, Math.min(Math.PI - 0.1, (deviceOrientation.beta) * (Math.PI / 180)));
+    // Combine base offset with current device rotation
+    camera.quaternion.copy(gyroBaseQuaternion).multiply(gyroQuaternion);
+    
+    // Position camera based on rotation and radius
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    camera.position.copy(cameraTarget).sub(forward.multiplyScalar(cameraOrbit.radius));
+  } else {
+    camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
+    camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
+    camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
+    camera.lookAt(cameraTarget);
   }
-  
-  camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
-  camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
-  camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
-  camera.lookAt(cameraTarget);
 }
 
 function updateInfiniteGrid() {

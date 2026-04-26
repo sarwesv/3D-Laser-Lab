@@ -60,7 +60,8 @@ body, html {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 240px;
+  min-width: 200px;
+  max-width: 320px;
   z-index: 100;
 }
 
@@ -332,7 +333,8 @@ input[type="range"]::-webkit-slider-thumb {
   #status-panel {
     top: 10px;
     left: 10px;
-    max-width: 160px;
+    min-width: 180px;
+    max-width: 220px;
     padding: 8px 12px;
   }
 
