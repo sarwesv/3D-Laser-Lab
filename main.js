@@ -1235,19 +1235,22 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // 1. Position camera AT the player's position (cameraTarget)
-    // We lift it slightly (0.8m) to be above the floor
-    camera.position.set(cameraTarget.x, 0.8, cameraTarget.z);
-    
-    // 2. Apply Direct First-Person Rotation
+    // 1. POSITION: Eye level at cameraTarget
+    camera.position.set(cameraTarget.x, 1.2, cameraTarget.z); // Slightly higher for better view
+
+    // 2. ROTATION: Native Device -> World Mapping
+    // We use a clean Euler mapping that respects Y-Up world
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
     const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
+
+    // This specific order and mapping is standard for "Magic Window" first-person
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma); 
     
-    // This mapping aligns the phone's "pointing" with the 3D world direction
-    camera.rotation.set(beta, -alpha, -gamma, 'YXZ');
+    camera.updateMatrixWorld(true);
   } else {
-    // Standard Orbital View (Third Person)
+    // Standard Third-Person Orbit View
     camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
     camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
     camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
@@ -1279,17 +1282,18 @@ function render() {
   if (window.update3DMovement) window.update3DMovement();
   
   if (isGyroActive) {
-    updateCamera();
-    
-    // Physical translation via acceleration
+    // 1. Calculate and Apply Physical "Walking" movement
     if (Math.abs(motionVelocity) > 0.001) {
-      const dir = new THREE.Vector3();
-      camera.getWorldDirection(dir);
-      dir.y = 0;
-      dir.normalize();
-      cameraTarget.add(dir.multiplyScalar(motionVelocity));
-      updateCamera();
+      const forwardDir = new THREE.Vector3(0, 0, -1);
+      forwardDir.applyQuaternion(camera.quaternion);
+      forwardDir.y = 0; // Move only on X-Z plane
+      forwardDir.normalize();
+      
+      cameraTarget.add(forwardDir.multiplyScalar(motionVelocity));
     }
+    
+    // 2. Refresh First-Person View
+    updateCamera();
   }
   
   if (isLaserActive) updateLaser();
