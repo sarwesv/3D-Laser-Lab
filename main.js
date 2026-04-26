@@ -505,53 +505,89 @@ function init() {
   const btnGyro = document.getElementById('btn-gyro');
 
   // Gyro & Motion Handling
+  let hasReceivedOrientation = false;
   const onDeviceOrientation = (e) => {
+    if (!hasReceivedOrientation && (e.alpha || e.beta || e.gamma)) {
+      showNotification('Sensors active! Point around.');
+      hasReceivedOrientation = true;
+    }
     deviceOrientation.alpha = e.alpha || 0;
     deviceOrientation.beta = e.beta || 0;
     deviceOrientation.gamma = e.gamma || 0;
   };
 
   let motionVelocity = 0;
+  let hasShownMotionHint = false;
   const onDeviceMotion = (e) => {
-    // acceleration.z is forward/backward relative to the screen
-    // We apply a deadzone and a decay to simulate "nudging" the map
-    const accZ = e.acceleration.z || 0;
-    if (Math.abs(accZ) > 0.5) {
-      motionVelocity -= accZ * 0.01; // Negative because pushing phone away moves map forward
+    // Some devices use 'acceleration', others use 'accelerationIncludingGravity'
+    const acc = e.acceleration || e.accelerationIncludingGravity;
+    if (!acc) return;
+
+    // acc.z is forward/backward relative to the screen
+    // On many devices, z is inverted or scaled differently
+    let accZ = acc.z || 0;
+    
+    // If using accelerationIncludingGravity, we'd need to filter gravity out,
+    // but for simple 'nudge' detection, just a high-pass filter (deadzone) works.
+    if (Math.abs(accZ) > 1.0) {
+      motionVelocity -= accZ * 0.015; // Increased sensitivity
+      
+      if (!hasShownMotionHint) {
+        showNotification('Movement detected!');
+        hasShownMotionHint = true;
+      }
     }
-    motionVelocity *= 0.9; // Friction/Decay
+    motionVelocity *= 0.85; // Slightly less friction for longer glides
   };
 
   btnGyro.addEventListener('click', async () => {
     if (!isGyroActive) {
       // Request Permission (Required for iOS)
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          await DeviceOrientationEvent.requestPermission();
-          // Request Motion Permission too if separate (iOS 13+)
-          if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-            await DeviceMotionEvent.requestPermission();
-          }
-        } catch (error) {
-          console.error(error);
+      let orientationGranted = false;
+      let motionGranted = false;
+
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const response = await DeviceOrientationEvent.requestPermission();
+          orientationGranted = (response === 'granted');
+        } else {
+          orientationGranted = true; // Assume granted on Android/Desktop if API exists
         }
+
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          const response = await DeviceMotionEvent.requestPermission();
+          motionGranted = (response === 'granted');
+        } else {
+          motionGranted = true;
+        }
+
+        if (!orientationGranted) {
+          showNotification('Orientation sensor permission denied.');
+          return;
+        }
+      } catch (error) {
+        showNotification('Error requesting sensor permissions.');
+        console.error(error);
+        return;
       }
 
       window.addEventListener('deviceorientation', onDeviceOrientation);
       window.addEventListener('devicemotion', onDeviceMotion);
       isGyroActive = true;
       btnGyro.classList.add('active');
-      showNotification('Gyro AR Mode: ON (Point your phone)');
+      showNotification('AR Mode ON: Point phone and walk!');
       
-      // Initial offset to "center" the view
-      gyroOffset = deviceOrientation.alpha;
+      // Wait a moment for values to settle then set offset
+      setTimeout(() => {
+        gyroOffset = deviceOrientation.alpha;
+      }, 500);
     } else {
       window.removeEventListener('deviceorientation', onDeviceOrientation);
       window.removeEventListener('devicemotion', onDeviceMotion);
       motionVelocity = 0;
       isGyroActive = false;
       btnGyro.classList.remove('active');
-      showNotification('Gyro AR Mode: OFF');
+      showNotification('AR Mode: OFF');
     }
   });
 
