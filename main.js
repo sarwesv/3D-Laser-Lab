@@ -503,29 +503,15 @@ function init() {
 
   const btnRacing = document.getElementById('btn-mode-racing');
   const btnGyro = document.getElementById('btn-gyro');
-  const btnRecenter = document.getElementById('btn-recenter');
 
   // Gyro & Motion Handling
   let hasReceivedOrientation = false;
   
   window.recenterGyro = () => {
     gyroBaseAlpha = deviceOrientation.alpha;
-    showNotification('View Recentered');
   };
 
   const onDeviceOrientation = (e) => {
-    const gyroStatus = document.getElementById('status-gyro');
-    if (gyroStatus) {
-      gyroStatus.innerText = 'OK';
-      gyroStatus.style.color = '#00ff00';
-    }
-    
-    // Update live debug numbers
-    const alphaEl = document.getElementById('val-alpha');
-    const betaEl = document.getElementById('val-beta');
-    if (alphaEl) alphaEl.innerText = Math.floor(e.alpha || 0);
-    if (betaEl) betaEl.innerText = Math.floor(e.beta || 0);
-
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('AR Sensors Active!');
       hasReceivedOrientation = true;
@@ -538,12 +524,6 @@ function init() {
   };
 
   const onDeviceMotion = (e) => {
-    const motionStatus = document.getElementById('status-motion');
-    if (motionStatus) {
-      motionStatus.innerText = 'OK';
-      motionStatus.style.color = '#00ff00';
-    }
-
     const acc = e.acceleration || e.accelerationIncludingGravity;
     if (!acc) return;
     let accZ = acc.z || 0;
@@ -556,14 +536,9 @@ function init() {
       }
     }
     motionVelocity *= 0.8;
-
-    // Update live debug velocity
-    const velEl = document.getElementById('val-vel');
-    if (velEl) velEl.innerText = motionVelocity.toFixed(2);
   };
 
   btnGyro.addEventListener('click', async () => {
-    const sensorStatus = document.getElementById('sensor-status');
     if (!isGyroActive) {
       let granted = false;
       try {
@@ -585,8 +560,6 @@ function init() {
         window.addEventListener('devicemotion', onDeviceMotion);
         isGyroActive = true;
         btnGyro.classList.add('active');
-        btnRecenter.style.display = 'flex';
-        if (sensorStatus) sensorStatus.style.display = 'block';
         showNotification('AR Mode Enabled');
       } else {
         showNotification('Sensor permission required for AR.');
@@ -598,13 +571,9 @@ function init() {
       isGyroActive = false;
       hasReceivedOrientation = false;
       btnGyro.classList.remove('active');
-      btnRecenter.style.display = 'none';
-      if (sensorStatus) sensorStatus.style.display = 'none';
       showNotification('AR Mode Disabled');
     }
   });
-
-  btnRecenter.addEventListener('click', window.recenterGyro);
 
   btnSandbox.addEventListener('click', () => {
     currentMode = 'sandbox';
@@ -1259,14 +1228,8 @@ function updateCamera() {
 
     // Use a robust order and mapping
     camera.rotation.order = 'YXZ';
-    camera.rotation.set(beta - Math.PI/2, alpha, gamma); 
+    camera.rotation.set(beta - Math.PI/2, alpha, gamma);
     
-    // 3. DEBUG: Update live camera numbers
-    const camEl = document.getElementById('val-cam');
-    if (camEl) {
-      camEl.innerText = `F:${frameCount} | C:${camera.rotation.y.toFixed(2)}`;
-    }
-
     camera.updateMatrixWorld(true);
   } else {
     // Standard Third-Person Orbit View
@@ -1297,12 +1260,8 @@ function animate() {
   renderer.setAnimationLoop(render);
 }
 
-let frameCount = 0;
 function render() {
-  const camEl = document.getElementById('val-cam');
   try {
-    frameCount++;
-    
     // 1. FORCE CAMERA UPDATE EVERY SINGLE FRAME
     updateCamera();
 
@@ -1317,12 +1276,6 @@ function render() {
         forwardDir.normalize();
         cameraTarget.add(forwardDir.multiplyScalar(motionVelocity));
       }
-    }
-    
-    // LIVE DEBUG - MONITOR CAMERA ROTATION + FRAME PROOF
-    if (camEl && camera) {
-      camEl.innerText = `F:${frameCount} | ${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
-      camEl.style.color = 'white';
     }
     
     if (isLaserActive) updateLaser();
@@ -1364,10 +1317,6 @@ function render() {
       renderer.render(scene, camera); 
     }
   } catch (err) {
-    if (camEl) {
-      camEl.innerText = `ERR: ${err.message}`;
-      camEl.style.color = '#ff0000';
-    }
     console.error(err);
   }
 }
@@ -1393,20 +1342,6 @@ function clearAll() {
   if (btnStart) { btnStart.textContent = 'Start Laser'; btnStart.classList.remove('active'); }
 }
 
-// GLOBAL ERROR CATCHER
-window.addEventListener('error', (e) => {
-  const camEl = document.getElementById('val-cam');
-  if (camEl) {
-    camEl.innerText = `CRASH: ${e.message.substring(0, 30)}`;
-    camEl.style.color = 'red';
-  }
-});
-
 // START THE APP
-try {
-  init();
-  animate();
-} catch (e) {
-  const camEl = document.getElementById('val-cam');
-  if (camEl) camEl.innerText = `INIT ERR: ${e.message.substring(0, 20)}`;
-}
+init();
+animate();
