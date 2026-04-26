@@ -17,6 +17,8 @@ let floor, grid;
 let is3DMode = false;
 let is3DListenersAttached = false;
 let isDragging = false;
+let isDraggingObject = false;
+let draggedObject = null;
 let keys = {};
 let cameraOrbit = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 3 };
 let cameraTarget = new THREE.Vector3(0, 0, 0);
@@ -316,7 +318,28 @@ function init() {
   scene.add(reticle);
 
   document.querySelectorAll('.inventory-item').forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('pointerdown', (e) => {
+      if (item.id === 'btn-delete') return;
+      
+      // Start dragging from inventory
+      selectedItemType = item.dataset.type;
+      isDeleteMode = false;
+      selectedObject = null;
+      document.getElementById('btn-delete').classList.remove('active');
+      document.getElementById('rotation-container').style.display = 'none';
+      
+      document.querySelectorAll('.inventory-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      updateGhost();
+      
+      isDraggingObject = true;
+      draggedObject = ghostObject;
+      
+      // Allow pointer move to pick it up immediately
+      e.stopPropagation();
+    });
+
+    item.addEventListener('click', (e) => {
       if (item.id === 'btn-delete') {
         isDeleteMode = !isDeleteMode;
         item.classList.toggle('active', isDeleteMode);
@@ -329,21 +352,22 @@ function init() {
         }
         return;
       }
-      selectedItemType = (selectedItemType === item.dataset.type) ? null : item.dataset.type;
-      if (selectedItemType) {
+      
+      // If we're already dragging this type, clicking deselects it
+      if (selectedItemType === item.dataset.type && !isDraggingObject) {
+        selectedItemType = null;
+        item.classList.remove('active');
+        removeGhost();
+      } else {
+        selectedItemType = item.dataset.type;
         isDeleteMode = false;
         selectedObject = null;
         document.getElementById('btn-delete').classList.remove('active');
         document.getElementById('rotation-container').style.display = 'none';
-      }
-      document.querySelectorAll('.inventory-item').forEach(i => {
-        i.classList.remove('active');
-      });
-      if (selectedItemType) {
+        
+        document.querySelectorAll('.inventory-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
         updateGhost();
-      } else {
-        removeGhost();
       }
     });
   });
@@ -938,21 +962,72 @@ function setup3DInteractions() {
   };
   window.addEventListener('pointerdown', (e) => {
     if (e.target.tagName !== 'CANVAS') return;
+    
+    getMousePos(e);
+    raycaster.setFromCamera(mouse, camera);
+    const objIntersects = raycaster.intersectObjects(objects);
+    
+    if (objIntersects.length > 0 && !isDeleteMode) {
+      const obj = objIntersects[0].object;
+      if (!obj.userData.isFixed) {
+        isDraggingObject = true;
+        draggedObject = obj;
+        selectedObject = obj;
+        
+        // Setup rotation sliders
+        document.getElementById('rotation-container').style.display = 'flex';
+        document.getElementById('rotation-slider-h').value = (obj.userData.rotationH || 0) * (180 / Math.PI);
+        document.getElementById('rotation-slider-v').value = (obj.userData.rotationV || 0) * (180 / Math.PI);
+        
+        // Deselect inventory
+        selectedItemType = null;
+        document.querySelectorAll('.inventory-item').forEach(i => i.classList.remove('active'));
+        removeGhost();
+      }
+    }
+    
     isDragging = true;
     previousMouse = { x: e.clientX, y: e.clientY };
     downPos = { x: e.clientX, y: e.clientY };
   });
   window.addEventListener('pointermove', (e) => {
-    if (!is3DMode || e.target.tagName !== 'CANVAS') { if (!isDragging) reticle.visible = false; }
+    const isOverCanvas = e.target.tagName === 'CANVAS';
+    if (!is3DMode || !isOverCanvas) { 
+      if (!isDragging && !isDraggingObject) reticle.visible = false; 
+    }
+    
     getMousePos(e);
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(floor);
+    
     if (intersects.length > 0) {
       reticle.visible = true;
       reticle.position.copy(intersects[0].point);
-      reticle.position.y = 0.02; // Keep it lifted
-    } else { reticle.visible = false; }
-    if (!isDragging) return;
+      reticle.position.y = 0.02;
+      
+      if (isDraggingObject && draggedObject) {
+        draggedObject.position.copy(intersects[0].point);
+        // Maintain proper Y offset
+        if (draggedObject === ghostObject) {
+          if (selectedItemType === 'laser') draggedObject.position.y = 0.05;
+          else if (selectedItemType === 'mirror') draggedObject.position.y = 0.1;
+          else if (selectedItemType === 'prism') draggedObject.position.y = 0.08;
+          else if (selectedItemType === 'absorber') draggedObject.position.y = 0.075;
+        } else {
+          const type = draggedObject.userData.type;
+          if (type === 'laser') draggedObject.position.y = 0.05;
+          else if (type === 'mirror') draggedObject.position.y = 0.1;
+          else if (type === 'prism') draggedObject.position.y = 0.08;
+          else if (type === 'absorber') draggedObject.position.y = 0.075;
+        }
+        if (isLaserActive) updateLaser();
+      }
+    } else { 
+      reticle.visible = false; 
+    }
+    
+    if (!isDragging || isDraggingObject) return;
+    
     const deltaX = e.clientX - previousMouse.x;
     const deltaY = e.clientY - previousMouse.y;
     cameraOrbit.theta -= deltaX * 0.01;
@@ -961,9 +1036,40 @@ function setup3DInteractions() {
     updateCamera();
   });
   window.addEventListener('pointerup', (e) => {
-    if (!isDragging) return;
+    if (!isDragging && !isDraggingObject) return;
+    
+    const wasDraggingObject = isDraggingObject;
+    const dragObj = draggedObject;
+    
     isDragging = false;
-    if (Math.sqrt((e.clientX - downPos.x)**2 + (e.clientY - downPos.y)**2) < 10 && is3DMode && e.target.tagName === 'CANVAS') {
+    isDraggingObject = false;
+    draggedObject = null;
+
+    const isClick = Math.sqrt((e.clientX - downPos.x)**2 + (e.clientY - downPos.y)**2) < 10;
+    
+    if (wasDraggingObject && !isClick) {
+      if (dragObj === ghostObject) {
+        // Finishing a drag from inventory
+        const isOverCanvas = e.target.tagName === 'CANVAS';
+        if (isOverCanvas) {
+          getMousePos(e);
+          raycaster.setFromCamera(mouse, camera);
+          const floorIntersects = raycaster.intersectObject(floor);
+          if (floorIntersects.length > 0) {
+            placeObject(selectedItemType, null, floorIntersects[0].point.toArray());
+            selectedItemType = null;
+            document.querySelectorAll('.inventory-item').forEach(i => i.classList.remove('active'));
+            removeGhost();
+          }
+        }
+      } else if (dragObj) {
+        // Finishing a move of an existing object
+        if (isLaserActive) updateLaser();
+      }
+      return;
+    }
+
+    if (isClick && is3DMode && e.target.tagName === 'CANVAS') {
       getMousePos(e);
       raycaster.setFromCamera(mouse, camera);
       const objIntersects = raycaster.intersectObjects(objects);
@@ -981,7 +1087,7 @@ function setup3DInteractions() {
         if (obj.userData.type === 'laser' || obj.userData.type === 'mirror') {
           selectedObject = obj;
           selectedItemType = null;
-          document.querySelectorAll('.inventory-item').forEach(i => i.style.background = '');
+          document.querySelectorAll('.inventory-item').forEach(i => i.classList.remove('active'));
           removeGhost();
           
           if (obj.userData.isFixed) {

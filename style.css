@@ -21,6 +21,7 @@ body, html {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text);
   background: #f5f7fa;
+  touch-action: none;
 }
 
 #container {
@@ -169,6 +170,7 @@ body, html {
   font-size: 1.1rem;
   position: relative;
   transition: 0.2s;
+  touch-action: none;
 }
 
 .inventory-item:hover {
