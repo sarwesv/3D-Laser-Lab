@@ -464,6 +464,7 @@ function init() {
     btnChallenges.classList.remove('active');
     levelOverlay.style.display = 'none';
     document.getElementById('btn-hint').style.display = 'none';
+    document.getElementById('btn-help').style.display = 'flex';
     inventoryCounts = { laser: Infinity, mirror: Infinity, prism: Infinity, absorber: Infinity };
     window.updateInventoryUI();
     clearAll();
@@ -473,6 +474,9 @@ function init() {
     currentMode = 'challenges';
     btnChallenges.classList.add('active');
     btnSandbox.classList.remove('active');
+    document.getElementById('btn-help').style.display = 'none';
+    removeArrow();
+    helpActive = false;
     window.loadLevel(currentLevelIndex);
   });
 
