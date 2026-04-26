@@ -26,6 +26,9 @@ let isInfiniteGrid = false;
 let isGyroActive = false;
 let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let gyroBaseAlpha = 0;
+let motionVelocity = 0;
+let hasShownMotionHint = false;
+let hasReceivedOrientation = false;
 
 let selectedObject = null;
 let objects = [];
@@ -534,8 +537,6 @@ function init() {
     deviceOrientation.gamma = e.gamma || 0;
   };
 
-  let motionVelocity = 0;
-  let hasShownMotionHint = false;
   const onDeviceMotion = (e) => {
     const motionStatus = document.getElementById('status-motion');
     if (motionStatus) {
