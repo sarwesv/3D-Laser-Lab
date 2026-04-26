@@ -423,21 +423,6 @@ function init() {
     }
   });
 
-  document.getElementById('btn-random').addEventListener('click', () => {
-    // Generate a level index that is definitely higher than the handcrafted ones
-    // We'll use a random high number each time to get a different puzzle
-    const randomLevel = 6 + Math.floor(Math.random() * 1000);
-    
-    if (currentMode !== 'challenges') {
-      currentMode = 'challenges';
-      document.getElementById('btn-mode-challenges').classList.add('active');
-      document.getElementById('btn-mode-sandbox').classList.remove('active');
-    }
-    
-    window.loadLevel(randomLevel);
-    showNotification('New Random Challenge Generated!');
-  });
-
   document.getElementById('btn-help').addEventListener('click', () => {
     const helpSteps = [
       "Welcome to 3D Laser Lab!",
@@ -475,7 +460,7 @@ function init() {
       selectedObject.rotation.order = 'YXZ';
       if (selectedObject.userData.type === 'laser') {
         selectedObject.rotation.y = h;
-        selectedObject.rotation.x = -Math.PI / 2 + v;
+        selectedObject.rotation.x = Math.PI / 2 + v;
       } else if (selectedObject.userData.type === 'mirror') {
         selectedObject.rotation.y = h;
         selectedObject.rotation.x = v;
@@ -486,7 +471,7 @@ function init() {
       ghostObject.rotation.order = 'YXZ';
       if (selectedItemType === 'laser') {
         ghostObject.rotation.y = h;
-        ghostObject.rotation.x = -Math.PI / 2 + v;
+        ghostObject.rotation.x = Math.PI / 2 + v;
       } else if (selectedItemType === 'mirror') {        ghostObject.rotation.y = h;
         ghostObject.rotation.x = v;
       }
@@ -542,7 +527,7 @@ function updateGhost() {
     const v = parseFloat(sliderV.value) * (Math.PI / 180);
     if (selectedItemType === 'laser') {
       ghostObject.rotation.y = h;
-      ghostObject.rotation.x = -Math.PI / 2 + v;
+      ghostObject.rotation.x = Math.PI / 2 + v;
     } else if (selectedItemType === 'mirror') {
       ghostObject.rotation.y = h;
       ghostObject.rotation.x = v;
@@ -581,7 +566,7 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
     mesh.position.y = 0.05;
     mesh.rotation.order = 'YXZ';
     mesh.rotation.y = currentRotationH;
-    mesh.rotation.x = -Math.PI / 2 + currentRotationV;
+    mesh.rotation.x = Math.PI / 2 + currentRotationV;
   } else if (type === 'mirror') {
     geometry = new THREE.BoxGeometry(0.2, 0.2, 0.02);
     material = new THREE.MeshStandardMaterial({ color: 0x88ccff, metalness: 1, roughness: 0 });
@@ -649,7 +634,7 @@ function updateLaser() {
   allPaths = [];
   const rayQueue = [];
   emitters.forEach(e => {
-    const initialDir = new THREE.Vector3(0, 0, -1).applyQuaternion(e.quat).normalize();
+    const initialDir = new THREE.Vector3(0, 1, 0).applyQuaternion(e.quat).normalize();
     const emitterTip = e.pos.clone().add(initialDir.clone().multiplyScalar(0.05));
     rayQueue.push({ 
       pos: emitterTip, 
