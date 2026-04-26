@@ -313,6 +313,12 @@ function init() {
     }
   });
 
+  document.getElementById('top-trigger').addEventListener('click', () => {
+    document.getElementById('status-panel').classList.remove('hidden');
+    document.getElementById('actions-container').classList.remove('hidden');
+    document.getElementById('top-trigger').classList.remove('active');
+  });
+
   document.getElementById('btn-clear').addEventListener('click', () => {
     if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
       clearAll();
@@ -467,7 +473,7 @@ function updateGhost() {
     ghostObject = new THREE.Mesh(geometry, material);
     ghostObject.renderOrder = 999;
     ghostObject.rotation.order = 'YXZ';
-    ghostObject.rotation.x = Math.PI / 2; // Point forward along Z
+    ghostObject.rotation.x = -Math.PI / 2; // Point forward along Z
     document.getElementById('rotation-container').style.display = 'flex';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
@@ -815,7 +821,20 @@ function setup3DInteractions() {
         }
       }
       const floorIntersects = raycaster.intersectObject(floor);
-      if (selectedItemType && floorIntersects.length > 0) { placeObject(selectedItemType, null, floorIntersects[0].point.toArray()); }
+      if (selectedItemType && floorIntersects.length > 0) {
+        placeObject(selectedItemType, null, floorIntersects[0].point.toArray());
+      } else if (floorIntersects.length > 0) {
+        // Hide top controls when clicking the grid
+        document.getElementById('status-panel').classList.add('hidden');
+        document.getElementById('actions-container').classList.add('hidden');
+        document.getElementById('top-trigger').classList.add('active');
+        
+        selectedObject = null;
+        document.getElementById('rotation-container').style.display = 'none';
+      } else {
+        selectedObject = null;
+        document.getElementById('rotation-container').style.display = 'none';
+      }
     }
   });
   window.update3DMovement = () => {

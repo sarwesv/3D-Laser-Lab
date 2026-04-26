@@ -86,10 +86,16 @@ body, html {
   z-index: 1000;
   cursor: pointer;
   display: none;
+  pointer-events: auto;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
 }
 
 #top-trigger.active {
   display: block;
+}
+
+#top-trigger.active:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
 }
 
 .liquid-title {
