@@ -1314,6 +1314,12 @@ function render() {
     updateCamera();
   }
   
+  // LIVE DEBUG - MONITOR CAMERA ROTATION REGARDLESS OF AR STATE
+  const camEl = document.getElementById('val-cam');
+  if (camEl && camera) {
+    camEl.innerText = `${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
+  }
+  
   if (isLaserActive) updateLaser();
   if (ghostObject) {
     if (reticle.visible) {
