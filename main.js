@@ -12,7 +12,7 @@ let selectedItemType = null;
 let isDeleteMode = false;
 let isLaserActive = false;
 let ghostObject = null;
-let laserBeams = []; // Array of line objects
+let laserBeams = []; 
 let floor, grid;
 let is3DMode = false;
 let is3DListenersAttached = false;
@@ -29,10 +29,10 @@ let previousMouse = { x: 0, y: 0 };
 let currentRotationH = 0;
 let currentRotationV = 0;
 let laserSpeed = 4.0;
-let allPaths = []; // Array of { points, distances }
+let allPaths = []; 
 
 // Gamification State
-let currentMode = 'sandbox'; // 'sandbox' or 'challenges'
+let currentMode = 'sandbox'; 
 let currentLevelIndex = 0;
 let unlockedLevelIndex = parseInt(localStorage.getItem('unlockedLevelIndex') || '0');
 let isLevelCompleting = false;
@@ -186,12 +186,11 @@ function init() {
     if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
       clearAll();
       if (currentMode === 'challenges') {
-        loadLevel(currentLevelIndex);
+        window.loadLevel(currentLevelIndex);
       }
     }
   });
 
-  // Mode Toggles
   const btnSandbox = document.getElementById('btn-mode-sandbox');
   const btnChallenges = document.getElementById('btn-mode-challenges');
   const levelOverlay = document.getElementById('level-overlay');
@@ -200,14 +199,12 @@ function init() {
     Object.keys(inventoryCounts).forEach(type => {
       const item = document.getElementById(`item-${type}`);
       if (!item) return;
-      
       let badge = item.querySelector('.item-count');
       if (!badge) {
         badge = document.createElement('div');
         badge.className = 'item-count';
         item.appendChild(badge);
       }
-      
       if (currentMode === 'challenges') {
         badge.style.display = 'block';
         badge.innerText = inventoryCounts[type];
@@ -231,23 +228,14 @@ function init() {
     clearAll();
     currentLevelIndex = index;
     const level = levels[index];
-    
     document.getElementById('level-title').innerText = level.title;
     document.getElementById('level-instructions').innerText = level.instructions;
     levelOverlay.style.display = 'block';
-
-    // Set inventory
     inventoryCounts = { ...level.inventory };
     window.updateInventoryUI();
-
-    // Create Targets
     level.targets.forEach(t => {
       const geom = new THREE.SphereGeometry(0.15, 16, 16);
-      const mat = new THREE.MeshStandardMaterial({ 
-        color: 0x444444, 
-        emissive: 0x000000, 
-        roughness: 0.5 
-      });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x444444, emissive: 0x000000, roughness: 0.5 });
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(t.pos[0], t.pos[1], t.pos[2]);
       mesh.userData.isTarget = true;
@@ -255,19 +243,13 @@ function init() {
       scene.add(mesh);
       targetObjects.push(mesh);
     });
-
-    // Create Fixed Objects
     level.fixedObjects.forEach(o => {
       currentRotationH = o.rotH || 0;
       currentRotationV = o.rotV || 0;
       placeObject(o.type, null, o.pos, null, o.fixed);
     });
-
-    // Reset rotation settings
     currentRotationH = 0;
     currentRotationV = 0;
-
-    // Auto-start laser if we have fixed emitters
     if (level.fixedObjects.some(o => o.type === 'laser')) {
       isLaserActive = true;
       const btn = document.getElementById('btn-start');
@@ -332,7 +314,6 @@ function init() {
 
   sliderH.addEventListener('input', updateRotation);
   sliderV.addEventListener('input', updateRotation);
-
   window.addEventListener('resize', onWindowResize);
   start3DMode();
 }
@@ -392,7 +373,6 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
     inventoryCounts[type]--;
     window.updateInventoryUI();
   }
-
   let geometry, material, mesh;
   if (type === 'laser') {
     geometry = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 16);
@@ -434,10 +414,7 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
   if (savedQuat) mesh.quaternion.fromArray(savedQuat);
   mesh.userData.type = type;
   mesh.userData.isFixed = isFixed;
-  if (isFixed) {
-    // Visually distinguish fixed objects
-    mesh.material.emissive = new THREE.Color(0x222222);
-  }
+  if (isFixed) mesh.material.emissive = new THREE.Color(0x222222);
   scene.add(mesh);
   objects.push(mesh);
   if (isLaserActive) updateLaser();
@@ -449,127 +426,85 @@ function updateLaser() {
     laserBeams = [];
     return;
   }
-
   const emitters = objects.filter(o => o.userData.type === 'laser').map(o => ({
     pos: o.position.clone(),
     quat: o.quaternion.clone()
   }));
-
   if (selectedItemType === 'laser' && ghostObject && ghostObject.visible) {
     emitters.push({ pos: ghostObject.position.clone(), quat: ghostObject.quaternion.clone() });
   }
-
   if (emitters.length === 0) {
     laserBeams.forEach(b => b.visible = false);
     return;
   }
-
   allPaths = [];
   const rayQueue = [];
   emitters.forEach(e => {
     const initialDir = new THREE.Vector3(0, 0, -1).applyQuaternion(e.quat).normalize();
     const emitterTip = e.pos.clone().add(initialDir.clone().multiplyScalar(0.05));
-    // Start with White Light
     rayQueue.push({ pos: emitterTip, dir: initialDir, depth: 0, color: 0xffffff });
   });
-
   const maxDepth = 24;
   const raycaster = new THREE.Raycaster();
-
-  // Reset targets
   targetObjects.forEach(t => t.userData.active = false);
-
   while (rayQueue.length > 0 && allPaths.length < 128) {
     const { pos, dir, depth, color } = rayQueue.shift();
     if (depth > maxDepth) continue;
-
     const pathPoints = [pos.clone()];
     const distances = [0];
     let currentPos = pos.clone();
     let currentDir = dir.clone();
     let totalDist = 0;
-
     let branchFinished = false;
     while (!branchFinished) {
       raycaster.set(currentPos, currentDir);
-      
       const targets = [...objects.filter(o => o.userData.type !== 'laser'), ...targetObjects];
       if (floor) targets.push(floor);
-      
       const intersects = raycaster.intersectObjects(targets);
-
       if (intersects.length > 0) {
         const hit = intersects[0];
-
         if (hit.object.userData && hit.object.userData.isTarget) {
           hit.object.userData.active = true;
-          // Accumulate distance up to the target
           totalDist += hit.distance;
           pathPoints.push(hit.point.clone());
           distances.push(totalDist);
-          // Continue ray from the target point
           currentPos.copy(hit.point).add(currentDir.clone().multiplyScalar(0.01));
           continue; 
         }
-
         totalDist += hit.distance;
         pathPoints.push(hit.point.clone());
         distances.push(totalDist);
-
         if (hit.object.userData && hit.object.userData.type === 'mirror') {
           const normal = hit.face.normal.clone().applyMatrix4(new THREE.Matrix4().extractRotation(hit.object.matrixWorld));
           currentDir.reflect(normal).normalize();
-          rayQueue.push({ 
-            pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), 
-            dir: currentDir.clone(), 
-            depth: depth + 1,
-            color: color
-          });
+          rayQueue.push({ pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), dir: currentDir.clone(), depth: depth + 1, color: color });
           branchFinished = true;
         } else if (hit.object.userData && hit.object.userData.type === 'prism') {
-          // Define split angles and associated colors
-          const splits = [
-            { angle: -0.15, color: (color === 0xffffff) ? 0xff0000 : color }, // Red or same
-            { angle: 0,     color: (color === 0xffffff) ? 0x00ff00 : color }, // Green or same
-            { angle: 0.15,  color: (color === 0xffffff) ? 0x0000ff : color }  // Blue or same
-          ];
-
-          splits.forEach(split => {
+          [{ angle: -0.15, color: (color === 0xffffff) ? 0xff0000 : color }, { angle: 0, color: (color === 0xffffff) ? 0x00ff00 : color }, { angle: 0.15, color: (color === 0xffffff) ? 0x0000ff : color }].forEach(split => {
             const splitDir = currentDir.clone();
             const axis = new THREE.Vector3(0, 1, 0).cross(splitDir).normalize();
-            if (axis.length() < 0.1) axis.set(1, 0, 0); // fallback
+            if (axis.length() < 0.1) axis.set(1, 0, 0);
             splitDir.applyAxisAngle(axis, split.angle);
-            rayQueue.push({ 
-              pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), 
-              dir: splitDir, 
-              depth: depth + 1,
-              color: split.color
-            });
+            rayQueue.push({ pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), dir: splitDir, depth: depth + 1, color: split.color });
           });
           branchFinished = true;
         } else {
-          // Absorber or other
           branchFinished = true;
         }
       } else {
-        const dist = 1000;
-        totalDist += dist;
-        pathPoints.push(currentPos.clone().add(currentDir.clone().multiplyScalar(dist)));
+        totalDist += 1000;
+        pathPoints.push(currentPos.clone().add(currentDir.clone().multiplyScalar(1000)));
         distances.push(totalDist);
         branchFinished = true;
       }
-      
       if (pathPoints.length > 20) branchFinished = true;
     }
-
     allPaths.push({ points: pathPoints, distances: distances, color: color });
   }
-
-  // Sync laserBeams array with allPaths
   while (laserBeams.length < allPaths.length) {
     const geom = new THREE.CylinderGeometry(0.01, 0.01, 1, 8);
-    geom.rotateX(Math.PI / 2); // Align with Z axis
-    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Default white
+    geom.rotateX(Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const beam = new THREE.Mesh(geom, mat);
     scene.add(beam);
     laserBeams.push(beam);
@@ -578,24 +513,18 @@ function updateLaser() {
     const beam = laserBeams.pop();
     scene.remove(beam);
   }
-
-  // Update Target Visuals
   targetObjects.forEach(t => {
     if (t.userData.active) {
-      t.material.color.setHex(0xffff00); // Yellow
+      t.material.color.setHex(0xffff00);
       t.material.emissive.setHex(0xaaaa00);
     } else {
-      t.material.color.setHex(0x444444); // Dark Gray
+      t.material.color.setHex(0x444444);
       t.material.emissive.setHex(0x000000);
     }
   });
-
-  // Check Win Condition
   if (currentMode === 'challenges' && targetObjects.length > 0 && !isLevelCompleting) {
-    const allHit = targetObjects.every(t => t.userData.active);
-    if (allHit) {
+    if (targetObjects.every(t => t.userData.active)) {
       isLevelCompleting = true;
-      // Delay slightly to let the user see the win
       setTimeout(() => {
         if (currentLevelIndex < levels.length - 1) {
           alert('Challenge Complete! Loading next level...');
@@ -604,7 +533,7 @@ function updateLaser() {
           window.loadLevel(currentLevelIndex + 1);
         } else {
           alert('Congratulations! You have completed all challenges!');
-          isLevelCompleting = false; // Reset so they can keep playing the last level
+          isLevelCompleting = false;
         }
       }, 500);
     }
@@ -636,8 +565,7 @@ function setup3DInteractions() {
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
   window.addEventListener('wheel', (e) => {
     if (!is3DMode) return;
-    cameraOrbit.radius += e.deltaY * 0.005;
-    cameraOrbit.radius = Math.max(0.5, Math.min(20, cameraOrbit.radius));
+    cameraOrbit.radius = Math.max(0.5, Math.min(20, cameraOrbit.radius + e.deltaY * 0.005));
     updateCamera();
   });
   function updateCamera() {
@@ -658,66 +586,38 @@ function setup3DInteractions() {
     downPos = { x: e.clientX, y: e.clientY };
   });
   window.addEventListener('pointermove', (e) => {
-    if (!is3DMode || e.target.tagName !== 'CANVAS') {
-      if (!isDragging) reticle.visible = false;
-    }
+    if (!is3DMode || e.target.tagName !== 'CANVAS') { if (!isDragging) reticle.visible = false; }
     getMousePos(e);
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(floor);
-    if (intersects.length > 0) {
-      reticle.visible = true;
-      reticle.position.copy(intersects[0].point);
-    } else {
-      reticle.visible = false;
-    }
+    if (intersects.length > 0) { reticle.visible = true; reticle.position.copy(intersects[0].point); }
+    else { reticle.visible = false; }
     if (!isDragging) return;
     const deltaX = e.clientX - previousMouse.x;
     const deltaY = e.clientY - previousMouse.y;
     cameraOrbit.theta -= deltaX * 0.01;
-    cameraOrbit.phi -= deltaY * 0.01;
-    cameraOrbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.1, cameraOrbit.phi));
+    cameraOrbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.1, cameraOrbit.phi - deltaY * 0.01));
     previousMouse = { x: e.clientX, y: e.clientY };
     updateCamera();
   });
   window.addEventListener('pointerup', (e) => {
     if (!isDragging) return;
     isDragging = false;
-    const dist = Math.sqrt((e.clientX - downPos.x)**2 + (e.clientY - downPos.y)**2);
-    if (dist < 10 && is3DMode && e.target.tagName === 'CANVAS') {
+    if (Math.sqrt((e.clientX - downPos.x)**2 + (e.clientY - downPos.y)**2) < 10 && is3DMode && e.target.tagName === 'CANVAS') {
       getMousePos(e);
       raycaster.setFromCamera(mouse, camera);
       const objIntersects = raycaster.intersectObjects(objects);
       if (objIntersects.length > 0) {
         const obj = objIntersects[0].object;
         if (isDeleteMode) {
-          if (obj.userData.isFixed) {
-            alert("This object is fixed and cannot be removed!");
-            return;
-          }
+          if (obj.userData.isFixed) { alert("This object is fixed and cannot be removed!"); return; }
           scene.remove(obj);
           objects = objects.filter(o => o !== obj);
-          
-          if (currentMode === 'challenges') {
-            inventoryCounts[obj.userData.type]++;
-            window.updateInventoryUI();
-          }
-
-          if (selectedObject === obj) {
-            selectedObject = null;
-            document.getElementById('rotation-container').style.display = 'none';
-          }
+          if (currentMode === 'challenges') { inventoryCounts[obj.userData.type]++; window.updateInventoryUI(); }
+          if (selectedObject === obj) { selectedObject = null; document.getElementById('rotation-container').style.display = 'none'; }
           if (isLaserActive) updateLaser();
           return;
         }
-        
-        if (obj.userData.isFixed) {
-          // You can't rotate fixed objects
-          if (obj.userData.type === 'laser' || obj.userData.type === 'mirror') {
-             // Show rotation but maybe keep it read only? Or just don't allow.
-             // For now, let's allow viewing rotation but we won't show the slider if it's fixed.
-          }
-        }
-
         if (obj.userData.type === 'laser' || obj.userData.type === 'mirror') {
           selectedObject = obj;
           selectedItemType = null;
@@ -730,9 +630,7 @@ function setup3DInteractions() {
         }
       }
       const floorIntersects = raycaster.intersectObject(floor);
-      if (selectedItemType && floorIntersects.length > 0) {
-        placeObject(selectedItemType, null, floorIntersects[0].point.toArray());
-      }
+      if (selectedItemType && floorIntersects.length > 0) { placeObject(selectedItemType, null, floorIntersects[0].point.toArray()); }
     }
   });
   window.update3DMovement = () => {
@@ -750,11 +648,7 @@ function setup3DInteractions() {
     if (keys['KeyD']) { cameraTarget.sub(right.clone().multiplyScalar(moveSpeed)); moved = true; }
     if (keys['ArrowUp']) { cameraOrbit.radius -= 0.1; moved = true; }
     if (keys['ArrowDown']) { cameraOrbit.radius += 0.1; moved = true; }
-    if (moved) {
-      cameraOrbit.radius = Math.max(0.5, Math.min(20, cameraOrbit.radius));
-      updateCamera();
-      if (isInfiniteGrid) updateInfiniteGrid();
-    }
+    if (moved) { cameraOrbit.radius = Math.max(0.5, Math.min(20, cameraOrbit.radius)); updateCamera(); if (isInfiniteGrid) updateInfiniteGrid(); }
   };
 }
 
@@ -781,12 +675,11 @@ function animate() {
 function render() {
   if (window.update3DMovement) window.update3DMovement();
   if (isLaserActive) updateLaser();
-
   if (ghostObject) {
     if (reticle.visible) {
       ghostObject.visible = true;
       ghostObject.position.copy(reticle.position);
-      if (selectedItemType === 'laser') ghostObject.position.y = 0.02;
+      if (selectedItemType === 'laser') ghostObject.position.y = 0.05;
       else if (selectedItemType === 'mirror') ghostObject.position.y = 0.1;
       else if (selectedItemType === 'prism') ghostObject.position.y = 0.08;
       else if (selectedItemType === 'absorber') ghostObject.position.y = 0.075;
@@ -794,53 +687,44 @@ function render() {
       updateLaser();
     } else {
       ghostObject.visible = false;
-      if (!isLaserActive) {
-        laserBeams.forEach(b => scene.remove(b));
-        laserBeams = [];
-      }
+      if (!isLaserActive) { laserBeams.forEach(b => scene.remove(b)); laserBeams = []; }
     }
   }
-
   if ((isLaserActive || selectedItemType === 'laser') && laserBeams.length > 0 && allPaths.length > 0) {
     allPaths.forEach((path, index) => {
       const beam = laserBeams[index];
-      if (!beam || path.points.length < 2) {
-        if (beam) beam.visible = false;
-        return;
-      }
-
-      // Apply path color
+      if (!beam || path.points.length < 2) { if (beam) beam.visible = false; return; }
       beam.material.color.setHex(path.color || 0xffffff);
-
       const start = path.points[0];
       const end = path.points[path.points.length - 1];
       const direction = new THREE.Vector3().subVectors(end, start);
       const len = direction.length();
-
       beam.scale.set(1, 1, len);
       beam.position.copy(start).add(direction.clone().multiplyScalar(0.5));
       beam.lookAt(end);
       beam.visible = true;
     });
-  } else if (!isLaserActive) {
-    laserBeams.forEach(b => b.visible = false);
-  }
-
-  if (composer) {
-    composer.render();
-  } else {
-    renderer.render(scene, camera);
-  }
+  } else if (!isLaserActive) { laserBeams.forEach(b => b.visible = false); }
+  if (composer) { composer.render(); } else { renderer.render(scene, camera); }
 }
 
 function clearAll() {
+  removeGhost();
   objects.forEach(o => scene.remove(o));
   objects = [];
   targetObjects.forEach(t => scene.remove(t));
   targetObjects = [];
   laserBeams.forEach(b => scene.remove(b));
   laserBeams = [];
+  scene.traverse(child => {
+     if (child.userData && child.userData.isTarget) {
+       scene.remove(child);
+     }
+  });
   selectedObject = null;
   const rotationContainer = document.getElementById('rotation-container');
   if (rotationContainer) rotationContainer.style.display = 'none';
+  isLaserActive = false;
+  const btnStart = document.getElementById('btn-start');
+  if (btnStart) { btnStart.textContent = 'Start Laser'; btnStart.classList.remove('active'); }
 }
