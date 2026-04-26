@@ -1,4 +1,4 @@
-# 3D Laser Laboratory
+# AR Laser Lab
 
 An interactive, web-based 3D simulation for experimenting with lasers, optics, and light manipulation. Build complex paths, split beams with prisms, and explore an infinite workspace.
 
