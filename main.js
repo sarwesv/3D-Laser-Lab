@@ -286,76 +286,112 @@ function updateLaser() {
     laserBeams = [];
     return;
   }
+
   const emitters = objects.filter(o => o.userData.type === 'laser').map(o => ({
     pos: o.position.clone(),
     quat: o.quaternion.clone()
   }));
+
   if (selectedItemType === 'laser' && ghostObject && ghostObject.visible) {
     emitters.push({ pos: ghostObject.position.clone(), quat: ghostObject.quaternion.clone() });
   }
+
   if (emitters.length === 0) {
     laserBeams.forEach(b => b.visible = false);
     return;
   }
+
   allPaths = [];
   const rayQueue = [];
   emitters.forEach(e => {
     const initialDir = new THREE.Vector3(0, 0, -1).applyQuaternion(e.quat).normalize();
     const emitterTip = e.pos.clone().add(initialDir.clone().multiplyScalar(0.05));
-    rayQueue.push({ pos: emitterTip, dir: initialDir, depth: 0 });
+    // Start with White Light
+    rayQueue.push({ pos: emitterTip, dir: initialDir, depth: 0, color: 0xffffff });
   });
+
   const maxDepth = 24;
   const raycaster = new THREE.Raycaster();
-  while (rayQueue.length > 0 && allPaths.length < 64) {
-    const { pos, dir, depth } = rayQueue.shift();
+
+  while (rayQueue.length > 0 && allPaths.length < 128) {
+    const { pos, dir, depth, color } = rayQueue.shift();
     if (depth > maxDepth) continue;
+
     const pathPoints = [pos.clone()];
     const distances = [0];
     let currentPos = pos.clone();
     let currentDir = dir.clone();
     let totalDist = 0;
+
     let branchFinished = false;
     while (!branchFinished) {
       raycaster.set(currentPos, currentDir);
+      
       const targets = [...objects.filter(o => o.userData.type !== 'laser')];
       if (floor) targets.push(floor);
+      
       const intersects = raycaster.intersectObjects(targets);
+
       if (intersects.length > 0) {
         const hit = intersects[0];
         totalDist += hit.distance;
         pathPoints.push(hit.point.clone());
         distances.push(totalDist);
+
         if (hit.object.userData && hit.object.userData.type === 'mirror') {
           const normal = hit.face.normal.clone().applyMatrix4(new THREE.Matrix4().extractRotation(hit.object.matrixWorld));
           currentDir.reflect(normal).normalize();
-          rayQueue.push({ pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), dir: currentDir.clone(), depth: depth + 1 });
+          rayQueue.push({ 
+            pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), 
+            dir: currentDir.clone(), 
+            depth: depth + 1,
+            color: color
+          });
           branchFinished = true;
         } else if (hit.object.userData && hit.object.userData.type === 'prism') {
-          [-0.15, 0, 0.15].forEach(angle => {
+          // Define split angles and associated colors
+          const splits = [
+            { angle: -0.15, color: (color === 0xffffff) ? 0xff0000 : color }, // Red or same
+            { angle: 0,     color: (color === 0xffffff) ? 0x00ff00 : color }, // Green or same
+            { angle: 0.15,  color: (color === 0xffffff) ? 0x0000ff : color }  // Blue or same
+          ];
+
+          splits.forEach(split => {
             const splitDir = currentDir.clone();
             const axis = new THREE.Vector3(0, 1, 0).cross(splitDir).normalize();
-            if (axis.length() < 0.1) axis.set(1, 0, 0);
-            splitDir.applyAxisAngle(axis, angle);
-            rayQueue.push({ pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), dir: splitDir, depth: depth + 1 });
+            if (axis.length() < 0.1) axis.set(1, 0, 0); // fallback
+            splitDir.applyAxisAngle(axis, split.angle);
+            rayQueue.push({ 
+              pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), 
+              dir: splitDir, 
+              depth: depth + 1,
+              color: split.color
+            });
           });
           branchFinished = true;
         } else {
+          // Absorber or other
           branchFinished = true;
         }
       } else {
-        totalDist += 1000;
-        pathPoints.push(currentPos.clone().add(currentDir.clone().multiplyScalar(1000)));
+        const dist = 1000;
+        totalDist += dist;
+        pathPoints.push(currentPos.clone().add(currentDir.clone().multiplyScalar(dist)));
         distances.push(totalDist);
         branchFinished = true;
       }
+      
       if (pathPoints.length > 20) branchFinished = true;
     }
-    allPaths.push({ points: pathPoints, distances: distances });
+
+    allPaths.push({ points: pathPoints, distances: distances, color: color });
   }
+
+  // Sync laserBeams array with allPaths
   while (laserBeams.length < allPaths.length) {
     const geom = new THREE.CylinderGeometry(0.01, 0.01, 1, 8);
-    geom.rotateX(Math.PI / 2);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    geom.rotateX(Math.PI / 2); // Align with Z axis
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Default white
     const beam = new THREE.Mesh(geom, mat);
     scene.add(beam);
     laserBeams.push(beam);
@@ -544,10 +580,15 @@ function render() {
         if (beam) beam.visible = false;
         return;
       }
+
+      // Apply path color
+      beam.material.color.setHex(path.color || 0xffffff);
+
       const start = path.points[0];
       const end = path.points[path.points.length - 1];
       const direction = new THREE.Vector3().subVectors(end, start);
       const len = direction.length();
+
       beam.scale.set(1, 1, len);
       beam.position.copy(start).add(direction.clone().multiplyScalar(0.5));
       beam.lookAt(end);
