@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D laser lab</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div id="container"></div>
+    
+    <div id="ui-overlay">
+      <div id="top-bar">
+        <h1>3D Laser Laboratory</h1>
+        
+        <div id="inventory-container">
+          <div class="inventory-item" id="item-laser" data-type="laser" title="Laser Emitter: Emits a straight beam of light">
+            <div class="icon">🔦</div>
+            <span>Laser</span>
+          </div>
+          <div class="inventory-item" id="item-mirror" data-type="mirror" title="Mirror: Reflects the laser beam at the angle of incidence">
+            <div class="icon">🪞</div>
+            <span>Mirror</span>
+          </div>
+          <div class="inventory-item" id="item-prism" data-type="prism" title="Prism: Splits the laser beam into multiple rays">
+            <div class="icon">🔺</div>
+            <span>Prism</span>
+          </div>
+          <div class="inventory-item" id="item-absorber" data-type="absorber" title="Absorber: Stops the laser beam completely">
+            <div class="icon">⬛</div>
+            <span>Absorber</span>
+          </div>
+          <div class="inventory-item" id="btn-delete" title="Delete Mode: Click to remove objects">
+            <div class="icon">🗑️</div>
+            <span>Delete</span>
+          </div>
+          <div class="inventory-divider"></div>
+          <button id="btn-start" class="btn-primary-small">Start</button>
+          <button id="btn-clear" class="btn-secondary-small">Clear</button>
+          <button id="btn-toggle-menu" class="btn-toggle-small">⚙️</button>
+        </div>
+
+        <div id="actions-container">
+          <div id="action-menu" class="collapsed horizontally">
+            <button id="btn-grid-toggle" class="btn-secondary-small">🌐 Grid: Fixed</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="rotation-container" class="glass-panel" style="display: none;">
+        <div class="control-group">
+          <label id="rotation-label-h" for="rotation-slider-h">Horizontal Angle</label>
+          <input type="range" id="rotation-slider-h" min="0" max="360" value="0">
+        </div>
+        <div class="control-group" style="margin-top: 10px;">
+          <label id="rotation-label-v" for="rotation-slider-v">Vertical Angle</label>
+          <input type="range" id="rotation-slider-v" min="-90" max="90" value="0">
+        </div>
+      </div>
+
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
