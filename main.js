@@ -423,6 +423,42 @@ function init() {
     }
   });
 
+  document.getElementById('btn-random').addEventListener('click', () => {
+    // Generate a level index that is definitely higher than the handcrafted ones
+    // We'll use a random high number each time to get a different puzzle
+    const randomLevel = 6 + Math.floor(Math.random() * 1000);
+    
+    if (currentMode !== 'challenges') {
+      currentMode = 'challenges';
+      document.getElementById('btn-mode-challenges').classList.add('active');
+      document.getElementById('btn-mode-sandbox').classList.remove('active');
+    }
+    
+    window.loadLevel(randomLevel);
+    showNotification('New Random Challenge Generated!');
+  });
+
+  document.getElementById('btn-help').addEventListener('click', () => {
+    const helpSteps = [
+      "Welcome to 3D Laser Lab!",
+      "1. Select a LASER 🔦 from the dock and click on the floor to place it.",
+      "2. Select a MIRROR 🪞 and place it in the laser's path.",
+      "3. Click a placed mirror to see ROTATION SLIDERS in the bottom-right.",
+      "4. Click START to fire the laser and see if you hit the target!",
+      "Try making a simple L-shape bounce with 1 mirror!"
+    ];
+    
+    let step = 0;
+    const showNextStep = () => {
+      if (step < helpSteps.length) {
+        showNotification(helpSteps[step]);
+        step++;
+        setTimeout(showNextStep, 4000);
+      }
+    };
+    showNextStep();
+  });
+
   const sliderH = document.getElementById('rotation-slider-h');
   const sliderV = document.getElementById('rotation-slider-v');
 
