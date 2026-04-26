@@ -519,6 +519,12 @@ function init() {
       gyroStatus.innerText = 'OK';
       gyroStatus.style.color = '#00ff00';
     }
+    
+    // Update live debug numbers
+    const alphaEl = document.getElementById('val-alpha');
+    const betaEl = document.getElementById('val-beta');
+    if (alphaEl) alphaEl.innerText = Math.floor(e.alpha || 0);
+    if (betaEl) betaEl.innerText = Math.floor(e.beta || 0);
 
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('AR Sensors Active!');
@@ -544,7 +550,6 @@ function init() {
     if (!acc) return;
     let accZ = acc.z || 0;
     
-    // Increased sensitivity for walking
     if (Math.abs(accZ) > 0.4) {
       motionVelocity -= accZ * 0.025;
       if (!hasShownMotionHint) {
@@ -552,7 +557,11 @@ function init() {
         hasShownMotionHint = true;
       }
     }
-    motionVelocity *= 0.8; // Snappier stopping
+    motionVelocity *= 0.8;
+
+    // Update live debug velocity
+    const velEl = document.getElementById('val-vel');
+    if (velEl) velEl.innerText = motionVelocity.toFixed(2);
   };
 
   btnGyro.addEventListener('click', async () => {
@@ -1236,18 +1245,17 @@ function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
     // 1. POSITION: Eye level at cameraTarget
-    camera.position.set(cameraTarget.x, 1.2, cameraTarget.z); // Slightly higher for better view
+    camera.position.set(cameraTarget.x, 1.2, cameraTarget.z);
 
-    // 2. ROTATION: Native Device -> World Mapping
-    // We use a clean Euler mapping that respects Y-Up world
+    // 2. ROTATION: Build a clean orientation
     const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
     const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
     const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
 
-    // This specific order and mapping is standard for "Magic Window" first-person
     camera.rotation.order = 'YXZ';
-    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma); 
+    camera.rotation.set(beta - Math.PI/2, -alpha, -gamma);
     
+    // Explicitly force matrix update
     camera.updateMatrixWorld(true);
   } else {
     // Standard Third-Person Orbit View
