@@ -57,7 +57,7 @@ An interactive, web-based 3D simulation for experimenting with lasers, optics, a
 
 ## 🌐 Deployment
 
-The project is configured for easy deployment with Vite. Simply run `npm run build` and deploy the `dist` folder to any static hosting provider (GitHub Pages, Vercel, Netlify, etc.).
+The project is configured for easy deployment with Vite. Simply run `npm run build` and deploy the `dist` folder to any static hosting provider (GitHub Pages, Vercel, Netlify, etc.). You can also run it by pressing [HERE](https://sarwesv.github.io/3D-Laser-Lab/)
 
 ## 📜 License
 
