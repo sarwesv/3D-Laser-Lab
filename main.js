@@ -206,9 +206,6 @@ function generateRandomLevel(index) {
 
 let currentLevelHint = "";
 
-init();
-animate();
-
 function showNotification(message) {
   const container = document.getElementById('notification-container');
   if (!container) return;
@@ -1298,67 +1295,76 @@ function animate() {
 
 let frameCount = 0;
 function render() {
-  frameCount++;
-  
-  // 1. FORCE CAMERA UPDATE EVERY SINGLE FRAME
-  updateCamera();
-
-  if (window.update3DMovement) window.update3DMovement();
-  
-  if (isGyroActive) {
-    // Calculate and Apply Physical "Walking" movement
-    if (Math.abs(motionVelocity) > 0.001) {
-      const forwardDir = new THREE.Vector3(0, 0, -1);
-      forwardDir.applyQuaternion(camera.quaternion);
-      forwardDir.y = 0; 
-      forwardDir.normalize();
-      cameraTarget.add(forwardDir.multiplyScalar(motionVelocity));
-    }
-  }
-  
-  // LIVE DEBUG - MONITOR CAMERA ROTATION + FRAME PROOF
   const camEl = document.getElementById('val-cam');
-  if (camEl && camera) {
-    camEl.innerText = `F:${frameCount} | ${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
-  }
-  
-  if (isLaserActive) updateLaser();
-  if (ghostObject) {
-    if (reticle.visible) {
-      ghostObject.visible = true;
-      ghostObject.position.copy(reticle.position);
-      if (selectedItemType === 'laser') ghostObject.position.y = 0.05;
-      else if (selectedItemType === 'mirror') ghostObject.position.y = 0.1;
-      else if (selectedItemType === 'prism') ghostObject.position.y = 0.08;
-      else if (selectedItemType === 'absorber') ghostObject.position.y = 0.075;
-      ghostObject.updateMatrixWorld();
-      updateLaser();
-    } else {
-      ghostObject.visible = false;
-      if (!isLaserActive) { laserBeams.forEach(b => scene.remove(b)); laserBeams = []; }
+  try {
+    frameCount++;
+    
+    // 1. FORCE CAMERA UPDATE EVERY SINGLE FRAME
+    updateCamera();
+
+    if (window.update3DMovement) window.update3DMovement();
+    
+    if (isGyroActive) {
+      // Calculate and Apply Physical "Walking" movement
+      if (Math.abs(motionVelocity) > 0.001) {
+        const forwardDir = new THREE.Vector3(0, 0, -1);
+        forwardDir.applyQuaternion(camera.quaternion);
+        forwardDir.y = 0; 
+        forwardDir.normalize();
+        cameraTarget.add(forwardDir.multiplyScalar(motionVelocity));
+      }
     }
-  }
-  if ((isLaserActive || selectedItemType === 'laser') && laserBeams.length > 0 && allPaths.length > 0) {
-    allPaths.forEach((path, index) => {
-      const beam = laserBeams[index];
-      if (!beam || path.points.length < 2) { if (beam) beam.visible = false; return; }
-      beam.material.color.setHex(path.color || 0xffffff);
-      const start = path.points[0];
-      const end = path.points[path.points.length - 1];
-      const direction = new THREE.Vector3().subVectors(end, start);
-      const len = direction.length();
-      beam.scale.set(1, 1, len);
-      beam.position.copy(start).add(direction.clone().multiplyScalar(0.5));
-      beam.lookAt(end);
-      beam.visible = true;
-    });
-  } else if (!isLaserActive) { laserBeams.forEach(b => b.visible = false); }
-  if (composer) { 
-    // FORCE SYNC composer camera
-    if (composer.passes[0]) composer.passes[0].camera = camera;
-    composer.render(); 
-  } else { 
-    renderer.render(scene, camera); 
+    
+    // LIVE DEBUG - MONITOR CAMERA ROTATION + FRAME PROOF
+    if (camEl && camera) {
+      camEl.innerText = `F:${frameCount} | ${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
+      camEl.style.color = 'white';
+    }
+    
+    if (isLaserActive) updateLaser();
+    if (ghostObject) {
+      if (reticle.visible) {
+        ghostObject.visible = true;
+        ghostObject.position.copy(reticle.position);
+        if (selectedItemType === 'laser') ghostObject.position.y = 0.05;
+        else if (selectedItemType === 'mirror') ghostObject.position.y = 0.1;
+        else if (selectedItemType === 'prism') ghostObject.position.y = 0.08;
+        else if (selectedItemType === 'absorber') ghostObject.position.y = 0.075;
+        ghostObject.updateMatrixWorld();
+        updateLaser();
+      } else {
+        ghostObject.visible = false;
+        if (!isLaserActive) { laserBeams.forEach(b => scene.remove(b)); laserBeams = []; }
+      }
+    }
+    if ((isLaserActive || selectedItemType === 'laser') && laserBeams.length > 0 && allPaths.length > 0) {
+      allPaths.forEach((path, index) => {
+        const beam = laserBeams[index];
+        if (!beam || path.points.length < 2) { if (beam) beam.visible = false; return; }
+        beam.material.color.setHex(path.color || 0xffffff);
+        const start = path.points[0];
+        const end = path.points[path.points.length - 1];
+        const direction = new THREE.Vector3().subVectors(end, start);
+        const len = direction.length();
+        beam.scale.set(1, 1, len);
+        beam.position.copy(start).add(direction.clone().multiplyScalar(0.5));
+        beam.lookAt(end);
+        beam.visible = true;
+      });
+    } else if (!isLaserActive) { laserBeams.forEach(b => b.visible = false); }
+    if (composer) { 
+      // FORCE SYNC composer camera
+      if (composer.passes[0]) composer.passes[0].camera = camera;
+      composer.render(); 
+    } else { 
+      renderer.render(scene, camera); 
+    }
+  } catch (err) {
+    if (camEl) {
+      camEl.innerText = `ERROR: ${err.message.substring(0, 30)}`;
+      camEl.style.color = 'red';
+    }
+    console.error(err);
   }
 }
 
@@ -1381,4 +1387,22 @@ function clearAll() {
   isLaserActive = false;
   const btnStart = document.getElementById('btn-start');
   if (btnStart) { btnStart.textContent = 'Start Laser'; btnStart.classList.remove('active'); }
+}
+
+// GLOBAL ERROR CATCHER
+window.addEventListener('error', (e) => {
+  const camEl = document.getElementById('val-cam');
+  if (camEl) {
+    camEl.innerText = `CRASH: ${e.message.substring(0, 30)}`;
+    camEl.style.color = 'red';
+  }
+});
+
+// START THE APP
+try {
+  init();
+  animate();
+} catch (e) {
+  const camEl = document.getElementById('val-cam');
+  if (camEl) camEl.innerText = `INIT ERR: ${e.message.substring(0, 20)}`;
 }
