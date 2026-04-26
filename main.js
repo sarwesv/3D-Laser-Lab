@@ -25,8 +25,7 @@ let cameraTarget = new THREE.Vector3(0, 0, 0);
 let isInfiniteGrid = false;
 let isGyroActive = false;
 let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
-let gyroQuaternion = new THREE.Quaternion();
-let gyroBaseQuaternion = new THREE.Quaternion();
+let gyroBaseAlpha = 0;
 
 let selectedObject = null;
 let objects = [];
@@ -510,7 +509,7 @@ function init() {
   let hasReceivedOrientation = false;
   
   window.recenterGyro = () => {
-    gyroBaseQuaternion.copy(gyroQuaternion).invert();
+    gyroBaseAlpha = deviceOrientation.alpha;
     showNotification('View Recentered');
   };
 
@@ -524,29 +523,12 @@ function init() {
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('AR Sensors Active!');
       hasReceivedOrientation = true;
-      // Auto-calibrate on first data
       setTimeout(window.recenterGyro, 500);
     }
     
-    // alpha (0-360), beta (-180, 180), gamma (-90, 90)
-    const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0;
-    const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;
-    const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0;
-    
-    // Modern screen orientation check
-    const screenAngle = (window.screen && window.screen.orientation) ? window.screen.orientation.angle : (window.orientation || 0);
-    const orient = THREE.MathUtils.degToRad(screenAngle);
-
-    const euler = new THREE.Euler();
-    const q0 = new THREE.Quaternion();
-    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -90 deg around X
-
-    euler.set(beta, alpha, -gamma, 'YXZ'); 
-    gyroQuaternion.setFromEuler(euler);    
-    gyroQuaternion.multiply(q1);           
-    
-    q0.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -orient);
-    gyroQuaternion.multiply(q0);
+    deviceOrientation.alpha = e.alpha || 0;
+    deviceOrientation.beta = e.beta || 0;
+    deviceOrientation.gamma = e.gamma || 0;
   };
 
   let motionVelocity = 0;
@@ -1251,18 +1233,17 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // FORCE camera to follow gyro by copy/multiplying directly
-    camera.quaternion.copy(gyroBaseQuaternion).multiply(gyroQuaternion);
+    // Basic Euler Mapping - extremely robust
+    // Alpha = Horizontal (Yaw), Beta = Vertical (Pitch)
+    const theta = (deviceOrientation.alpha - gyroBaseAlpha) * (Math.PI / 180);
+    const phi = Math.max(0.1, Math.min(Math.PI - 0.1, (deviceOrientation.beta) * (Math.PI / 180)));
     
-    // Position camera based on the direction it's pointing
-    const direction = new THREE.Vector3(0, 0, 1);
-    direction.applyQuaternion(camera.quaternion);
-    camera.position.copy(cameraTarget).add(direction.multiplyScalar(cameraOrbit.radius));
-    
-    // Ensure the matrix is updated for Three.js
-    camera.updateMatrixWorld(true);
+    camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(phi) * Math.cos(theta);
+    camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(phi);
+    camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(phi) * Math.sin(theta);
+    camera.lookAt(cameraTarget);
   } else {
-    // Standard Mouse/Touch Orbit
+    // Standard Orbit
     camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
     camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
     camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
