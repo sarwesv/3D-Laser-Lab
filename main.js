@@ -303,8 +303,8 @@ function init() {
   document.getElementById('btn-grid-toggle').addEventListener('click', () => {
     isInfiniteGrid = !isInfiniteGrid;
     const btn = document.getElementById('btn-grid-toggle');
-    btn.textContent = isInfiniteGrid ? '🌐 Grid: Infinite' : '🌐 Grid: Fixed';
     btn.classList.toggle('active', isInfiniteGrid);
+    showNotification(isInfiniteGrid ? 'Grid: Infinite' : 'Grid: Fixed');
     if (!isInfiniteGrid && grid && floor) {
       grid.position.set(0, 0, 0);
       floor.position.set(0, 0, 0);
@@ -472,8 +472,6 @@ function updateGhost() {
     material = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5, depthTest: false });
     ghostObject = new THREE.Mesh(geometry, material);
     ghostObject.renderOrder = 999;
-    ghostObject.rotation.order = 'YXZ';
-    ghostObject.rotation.x = -Math.PI / 2; // Point forward along Z
     document.getElementById('rotation-container').style.display = 'flex';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
@@ -501,6 +499,18 @@ function updateGhost() {
   }
   if (ghostObject) {
     ghostObject.visible = false;
+    ghostObject.rotation.order = 'YXZ';
+    const sliderH = document.getElementById('rotation-slider-h');
+    const sliderV = document.getElementById('rotation-slider-v');
+    const h = parseFloat(sliderH.value) * (Math.PI / 180);
+    const v = parseFloat(sliderV.value) * (Math.PI / 180);
+    if (selectedItemType === 'laser') {
+      ghostObject.rotation.y = h;
+      ghostObject.rotation.x = -Math.PI / 2 + v;
+    } else if (selectedItemType === 'mirror') {
+      ghostObject.rotation.y = h;
+      ghostObject.rotation.x = v;
+    }
     scene.add(ghostObject);
   }
 }
