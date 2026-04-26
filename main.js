@@ -47,46 +47,50 @@ const levels = [
   {
     title: "Level 1: The Basics",
     instructions: "Place a laser emitter to hit the target directly.",
+    hint: "Click the Laser icon and place it so it points directly at the target.",
     inventory: { laser: 1, mirror: 0, prism: 0, absorber: 0 },
     targets: [{ pos: [0, 0.1, -2] }],
     fixedObjects: []
   },
   {
-    title: "Level 2: Reflection",
-    instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
-    inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
-    targets: [{ pos: [2, 0.1, 0] }],
-    fixedObjects: [
-      { type: 'laser', pos: [-2, 0.05, 0], rotH: -Math.PI/2, rotV: 0, fixed: true },
-      { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
-    ]
+  title: "Level 2: Reflection",
+  instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
+  hint: "Place a mirror before the beam hits the obstacle, then rotate it 45 degrees.",
+  inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
+  targets: [{ pos: [-1, 0.1, 2] }],
+  fixedObjects: [
+    { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true },
+    { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
+  ]
   },
   {
-    title: "Level 3: Splitting",
-    instructions: "Use a prism to hit both targets simultaneously.",
-    inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
-    targets: [
-      { pos: [1.5, 0.1, -1.5] },
-      { pos: [1.5, 0.1, 1.5] }
-    ],
-    fixedObjects: [
-      { type: 'laser', pos: [-2, 0.05, 0], rotH: -Math.PI/2, rotV: 0, fixed: true }
-    ]
+  title: "Level 3: Splitting",
+  instructions: "Use a prism to hit both targets simultaneously.",
+  hint: "The prism splits light into 3 rays. Place it in the path of the main beam.",
+  inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
+  targets: [
+    { pos: [1.5, 0.1, -1.5] },
+    { pos: [1.5, 0.1, 1.5] }
+  ],
+  fixedObjects: [
+    { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true }
+  ]
   },
   {
-    title: "Level 4: Zig-Zag",
-    instructions: "Use two mirrors to navigate around the barriers to the target.",
-    inventory: { laser: 0, mirror: 2, prism: 0, absorber: 0 },
-    targets: [{ pos: [-2, 0.1, -2] }],
-    fixedObjects: [
-      { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
-      { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
-      { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
-    ]
-  },
-  {
+  title: "Level 4: Zig-Zag",
+  instructions: "Use mirrors to navigate around the barriers to the target.",
+  hint: "Bounce the beam around the first wall, then use more mirrors to aim at the target.",
+  inventory: { laser: 0, mirror: 3, prism: 0, absorber: 0 },
+  targets: [{ pos: [-2, 0.1, -2] }],
+  fixedObjects: [
+    { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
+    { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
+    { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
+  ]
+  },  {
     title: "Level 5: The Perimeter",
     instructions: "The target is far away. Use mirrors to bounce light along the edges.",
+    hint: "Keep the beam close to the grid edges to avoid missing the long-distance target.",
     inventory: { laser: 0, mirror: 3, prism: 0, absorber: 0 },
     targets: [{ pos: [4, 0.1, 4] }],
     fixedObjects: [
@@ -96,6 +100,7 @@ const levels = [
   {
     title: "Level 6: Web of Light",
     instructions: "Split the beam and then reflect both rays into the targets.",
+    hint: "Place the prism near the laser, then use mirrors to redirect the side rays.",
     inventory: { laser: 0, mirror: 2, prism: 1, absorber: 0 },
     targets: [
       { pos: [-3, 0.1, -3] },
@@ -106,6 +111,85 @@ const levels = [
     ]
   }
 ];
+
+function generateRandomLevel(index) {
+  const numMirrors = Math.min(1 + Math.floor((index - 6) / 2), 6);
+  const numObstacles = Math.min(index - 6, 8);
+  const gridSize = 1;
+  const bounds = 4; // -4 to 4
+
+  // Helper to snap to grid
+  const snap = (v) => Math.round(v / gridSize) * gridSize;
+
+  // 1. Place fixed laser emitter
+  const side = Math.floor(Math.random() * 4);
+  let laserPos, laserRotH;
+  if (side === 0) { laserPos = [-bounds, 0.05, snap((Math.random() * 2 - 1) * bounds)]; laserRotH = -Math.PI/2; }
+  else if (side === 1) { laserPos = [bounds, 0.05, snap((Math.random() * 2 - 1) * bounds)]; laserRotH = Math.PI/2; }
+  else if (side === 2) { laserPos = [snap((Math.random() * 2 - 1) * bounds), 0.05, -bounds]; laserRotH = Math.PI; }
+  else { laserPos = [snap((Math.random() * 2 - 1) * bounds), 0.05, bounds]; laserRotH = 0; }
+
+  // 2. Simulate path to place target
+  let currentPos = new THREE.Vector3(laserPos[0], 0.05, laserPos[2]);
+  let currentDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), laserRotH).normalize();
+  const pathSegments = [];
+
+  for (let i = 0; i < numMirrors; i++) {
+    const dist = Math.floor(Math.random() * 3 + 2) * gridSize;
+    const nextPos = currentPos.clone().add(currentDir.clone().multiplyScalar(dist));
+    
+    // Keep within bounds
+    if (Math.abs(nextPos.x) > bounds || Math.abs(nextPos.z) > bounds) break;
+    
+    pathSegments.push({ start: currentPos.clone(), end: nextPos.clone() });
+    currentPos.copy(nextPos);
+    
+    // Turn 90 degrees
+    const axis = new THREE.Vector3(0, 1, 0);
+    const angle = (Math.random() > 0.5 ? 1 : -1) * Math.PI / 2;
+    currentDir.applyAxisAngle(axis, angle);
+  }
+  
+  // Final segment
+  const finalDist = Math.floor(Math.random() * 2 + 1) * gridSize;
+  const targetPosVec = currentPos.clone().add(currentDir.clone().multiplyScalar(finalDist));
+  pathSegments.push({ start: currentPos.clone(), end: targetPosVec.clone() });
+
+  // 3. Generate obstacles that don't block the path
+  const obstacles = [];
+  for (let i = 0; i < numObstacles; i++) {
+    const obsPos = [snap((Math.random() * 2 - 1) * bounds), 0.075, snap((Math.random() * 2 - 1) * bounds)];
+    // Check if obstacle is too close to any path segment
+    const isSafe = pathSegments.every(seg => {
+      const p = new THREE.Vector3(obsPos[0], 0.05, obsPos[2]);
+      const line = new THREE.Line3(seg.start, seg.end);
+      const closest = new THREE.Vector3();
+      line.closestPointToPoint(p, true, closest);
+      return p.distanceTo(closest) > 0.5;
+    });
+    // And not on laser or target
+    const distToLaser = Math.sqrt((obsPos[0]-laserPos[0])**2 + (obsPos[2]-laserPos[2])**2);
+    const distToTarget = Math.sqrt((obsPos[0]-targetPosVec.x)**2 + (obsPos[2]-targetPosVec.z)**2);
+    
+    if (isSafe && distToLaser > 0.5 && distToTarget > 0.5) {
+      obstacles.push({ type: 'absorber', pos: obsPos, fixed: true });
+    }
+  }
+
+  return {
+    title: `Level ${index + 1}: Random Challenge`,
+    instructions: `Navigate the beam using ${numMirrors} mirror${numMirrors > 1 ? 's' : ''}.`,
+    hint: `Try placing your first mirror at [${pathSegments[0].end.x}, ${pathSegments[0].end.z}] to redirect the beam.`,
+    inventory: { laser: 0, mirror: numMirrors, prism: 0, absorber: 0 },
+    targets: [{ pos: [targetPosVec.x, 0.1, targetPosVec.z] }],
+    fixedObjects: [
+      { type: 'laser', pos: laserPos, rotH: laserRotH, rotV: 0, fixed: true },
+      ...obstacles
+    ]
+  };
+}
+
+let currentLevelHint = "";
 
 init();
 animate();
@@ -162,8 +246,10 @@ function init() {
   composer.addPass(bloomPass);
 
   const geometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+  const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthTest: false });
   reticle = new THREE.Mesh(geometry, material);
+  reticle.position.y = 0.02; // Lift above floor and grid
+  reticle.renderOrder = 999;
   reticle.visible = false;
   scene.add(reticle);
 
@@ -277,10 +363,13 @@ function init() {
     isLevelCompleting = false;
     clearAll();
     currentLevelIndex = index;
-    const level = levels[index];
+    const level = levels[index] || generateRandomLevel(index);
+    currentLevelHint = level.hint || "No hint available for this level.";
+    
     document.getElementById('level-title').innerText = level.title;
     document.getElementById('level-instructions').innerText = level.instructions;
     levelOverlay.style.display = 'block';
+    document.getElementById('btn-hint').style.display = 'inline-block';
     inventoryCounts = { ...level.inventory };
     window.updateInventoryUI();
     level.targets.forEach(t => {
@@ -314,6 +403,7 @@ function init() {
     btnSandbox.classList.add('active');
     btnChallenges.classList.remove('active');
     levelOverlay.style.display = 'none';
+    document.getElementById('btn-hint').style.display = 'none';
     inventoryCounts = { laser: Infinity, mirror: Infinity, prism: Infinity, absorber: Infinity };
     window.updateInventoryUI();
     clearAll();
@@ -324,6 +414,12 @@ function init() {
     btnChallenges.classList.add('active');
     btnSandbox.classList.remove('active');
     window.loadLevel(currentLevelIndex);
+  });
+
+  document.getElementById('btn-hint').addEventListener('click', () => {
+    if (currentLevelHint) {
+      showNotification(`Hint: ${currentLevelHint}`);
+    }
   });
 
   const sliderH = document.getElementById('rotation-slider-h');
@@ -342,7 +438,7 @@ function init() {
       selectedObject.rotation.order = 'YXZ';
       if (selectedObject.userData.type === 'laser') {
         selectedObject.rotation.y = h;
-        selectedObject.rotation.x = Math.PI / 2 - v;
+        selectedObject.rotation.x = -Math.PI / 2 + v;
       } else if (selectedObject.userData.type === 'mirror') {
         selectedObject.rotation.y = h;
         selectedObject.rotation.x = v;
@@ -353,9 +449,8 @@ function init() {
       ghostObject.rotation.order = 'YXZ';
       if (selectedItemType === 'laser') {
         ghostObject.rotation.y = h;
-        ghostObject.rotation.x = Math.PI / 2 - v;
-      } else if (selectedItemType === 'mirror') {
-        ghostObject.rotation.y = h;
+        ghostObject.rotation.x = -Math.PI / 2 + v;
+      } else if (selectedItemType === 'mirror') {        ghostObject.rotation.y = h;
         ghostObject.rotation.x = v;
       }
       updateLaser(); 
@@ -373,30 +468,34 @@ function updateGhost() {
   let geometry, material;
   if (selectedItemType === 'laser') {
     geometry = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 16);
-    material = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5 });
+    material = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5, depthTest: false });
     ghostObject = new THREE.Mesh(geometry, material);
-    ghostObject.rotation.x = Math.PI / 2;
+    ghostObject.renderOrder = 999;
+    ghostObject.rotation.order = 'YXZ';
+    ghostObject.rotation.x = -Math.PI / 2;
     document.getElementById('rotation-container').style.display = 'block';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
     document.getElementById('rotation-slider-v').style.display = 'block';
   } else if (selectedItemType === 'mirror') {
     geometry = new THREE.BoxGeometry(0.2, 0.2, 0.02);
-    material = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5 });
+    material = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5, depthTest: false });
     ghostObject = new THREE.Mesh(geometry, material);
+    ghostObject.renderOrder = 999;
     document.getElementById('rotation-container').style.display = 'block';
     document.getElementById('rotation-label-h').innerText = 'Horizontal Angle';
     document.getElementById('rotation-label-v').style.display = 'block';
     document.getElementById('rotation-slider-v').style.display = 'block';
   } else if (selectedItemType === 'prism' || selectedItemType === 'absorber') {
     if (selectedItemType === 'prism') {
-      geometry = new THREE.TetrahedronGeometry(0.12);
-      material = new THREE.MeshStandardMaterial({ color: 0xccffff, transparent: true, opacity: 0.5 });
+      geometry = new THREE.TetrahedronGeometry(0.2);
+      material = new THREE.MeshStandardMaterial({ color: 0xccffff, transparent: true, opacity: 0.5, depthTest: false });
     } else {
       geometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-      material = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5 });
+      material = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.5, depthTest: false });
     }
     ghostObject = new THREE.Mesh(geometry, material);
+    ghostObject.renderOrder = 999;
     document.getElementById('rotation-container').style.display = 'none';
   }
   if (ghostObject) {
@@ -435,7 +534,7 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
     mesh.position.y = 0.05;
     mesh.rotation.order = 'YXZ';
     mesh.rotation.y = currentRotationH;
-    mesh.rotation.x = Math.PI / 2 - currentRotationV;
+    mesh.rotation.x = -Math.PI / 2 + currentRotationV;
   } else if (type === 'mirror') {
     geometry = new THREE.BoxGeometry(0.2, 0.2, 0.02);
     material = new THREE.MeshStandardMaterial({ color: 0x88ccff, metalness: 1, roughness: 0 });
@@ -450,7 +549,7 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = 
     mesh.rotation.x = currentRotationV;
   } else if (type === 'prism' || type === 'absorber') {
     if (type === 'prism') {
-      geometry = new THREE.TetrahedronGeometry(0.12);
+      geometry = new THREE.TetrahedronGeometry(0.2);
       material = new THREE.MeshStandardMaterial({ color: 0xccffff, transparent: true, opacity: 0.7, metalness: 0.2, roughness: 0.1 });
     } else {
       geometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
@@ -530,10 +629,9 @@ function updateLaser() {
           rayQueue.push({ pos: hit.point.clone().add(currentDir.clone().multiplyScalar(0.001)), dir: currentDir.clone(), depth: depth + 1, color: color });
           branchFinished = true;
         } else if (hit.object.userData && hit.object.userData.type === 'prism') {
-          [{ angle: -0.15, color: (color === 0xffffff) ? 0xff0000 : color }, { angle: 0, color: (color === 0xffffff) ? 0x00ff00 : color }, { angle: 0.15, color: (color === 0xffffff) ? 0x0000ff : color }].forEach(split => {
+          [{ angle: -Math.PI/4, color: (color === 0xffffff) ? 0xff0000 : color }, { angle: 0, color: (color === 0xffffff) ? 0x00ff00 : color }, { angle: Math.PI/4, color: (color === 0xffffff) ? 0x0000ff : color }].forEach(split => {
             const splitDir = currentDir.clone();
-            const axis = new THREE.Vector3(0, 1, 0).cross(splitDir).normalize();
-            if (axis.length() < 0.1) axis.set(1, 0, 0);
+            const axis = new THREE.Vector3(0, 1, 0); // Horizontal split
             splitDir.applyAxisAngle(axis, split.angle);
             rayQueue.push({ pos: hit.point.clone().add(splitDir.clone().multiplyScalar(0.01)), dir: splitDir, depth: depth + 1, color: split.color });
           });
@@ -576,15 +674,10 @@ function updateLaser() {
     if (targetObjects.every(t => t.userData.active)) {
       isLevelCompleting = true;
       setTimeout(() => {
-        if (currentLevelIndex < levels.length - 1) {
-          showNotification('Challenge Complete! Loading next level...');
-          unlockedLevelIndex = Math.max(unlockedLevelIndex, currentLevelIndex + 1);
-          localStorage.setItem('unlockedLevelIndex', unlockedLevelIndex);
-          window.loadLevel(currentLevelIndex + 1);
-        } else {
-          showNotification('Congratulations! You have completed all challenges!');
-          isLevelCompleting = false; // Reset so they can keep playing the last level
-        }
+        showNotification('Challenge Complete! Loading next level...');
+        unlockedLevelIndex = Math.max(unlockedLevelIndex, currentLevelIndex + 1);
+        localStorage.setItem('unlockedLevelIndex', unlockedLevelIndex);
+        window.loadLevel(currentLevelIndex + 1);
       }, 500);
     }
   }
@@ -640,8 +733,11 @@ function setup3DInteractions() {
     getMousePos(e);
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(floor);
-    if (intersects.length > 0) { reticle.visible = true; reticle.position.copy(intersects[0].point); }
-    else { reticle.visible = false; }
+    if (intersects.length > 0) {
+      reticle.visible = true;
+      reticle.position.copy(intersects[0].point);
+      reticle.position.y = 0.02; // Keep it lifted
+    } else { reticle.visible = false; }
     if (!isDragging) return;
     const deltaX = e.clientX - previousMouse.x;
     const deltaY = e.clientY - previousMouse.y;
@@ -673,9 +769,15 @@ function setup3DInteractions() {
           selectedItemType = null;
           document.querySelectorAll('.inventory-item').forEach(i => i.style.background = '');
           removeGhost();
-          document.getElementById('rotation-container').style.display = 'block';
-          document.getElementById('rotation-slider-h').value = (obj.userData.rotationH || 0) * (180 / Math.PI);
-          document.getElementById('rotation-slider-v').value = (obj.userData.rotationV || 0) * (180 / Math.PI);
+          
+          if (obj.userData.isFixed) {
+            document.getElementById('rotation-container').style.display = 'none';
+            showNotification("This object is fixed and cannot be rotated.");
+          } else {
+            document.getElementById('rotation-container').style.display = 'block';
+            document.getElementById('rotation-slider-h').value = (obj.userData.rotationH || 0) * (180 / Math.PI);
+            document.getElementById('rotation-slider-v').value = (obj.userData.rotationV || 0) * (180 / Math.PI);
+          }
           return;
         }
       }
