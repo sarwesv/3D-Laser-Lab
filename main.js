@@ -72,6 +72,38 @@ const levels = [
     fixedObjects: [
       { type: 'laser', pos: [-2, 0.05, 0], rotH: -Math.PI/2, rotV: 0, fixed: true }
     ]
+  },
+  {
+    title: "Level 4: Zig-Zag",
+    instructions: "Use two mirrors to navigate around the barriers to the target.",
+    inventory: { laser: 0, mirror: 2, prism: 0, absorber: 0 },
+    targets: [{ pos: [-2, 0.1, -2] }],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
+      { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
+      { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
+    ]
+  },
+  {
+    title: "Level 5: The Perimeter",
+    instructions: "The target is far away. Use mirrors to bounce light along the edges.",
+    inventory: { laser: 0, mirror: 3, prism: 0, absorber: 0 },
+    targets: [{ pos: [4, 0.1, 4] }],
+    fixedObjects: [
+      { type: 'laser', pos: [-4, 0.05, -4], rotH: 0, rotV: 0, fixed: true }
+    ]
+  },
+  {
+    title: "Level 6: Web of Light",
+    instructions: "Split the beam and then reflect both rays into the targets.",
+    inventory: { laser: 0, mirror: 2, prism: 1, absorber: 0 },
+    targets: [
+      { pos: [-3, 0.1, -3] },
+      { pos: [3, 0.1, -3] }
+    ],
+    fixedObjects: [
+      { type: 'laser', pos: [0, 0.05, 3], rotH: Math.PI, rotV: 0, fixed: true }
+    ]
   }
 ];
 
