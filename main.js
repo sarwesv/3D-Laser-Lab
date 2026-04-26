@@ -504,11 +504,22 @@ function init() {
   const btnRacing = document.getElementById('btn-mode-racing');
   const btnGyro = document.getElementById('btn-gyro');
 
-  // Gyro Handling
+  // Gyro & Motion Handling
   const onDeviceOrientation = (e) => {
     deviceOrientation.alpha = e.alpha || 0;
     deviceOrientation.beta = e.beta || 0;
     deviceOrientation.gamma = e.gamma || 0;
+  };
+
+  let motionVelocity = 0;
+  const onDeviceMotion = (e) => {
+    // acceleration.z is forward/backward relative to the screen
+    // We apply a deadzone and a decay to simulate "nudging" the map
+    const accZ = e.acceleration.z || 0;
+    if (Math.abs(accZ) > 0.5) {
+      motionVelocity -= accZ * 0.01; // Negative because pushing phone away moves map forward
+    }
+    motionVelocity *= 0.9; // Friction/Decay
   };
 
   btnGyro.addEventListener('click', async () => {
@@ -516,18 +527,18 @@ function init() {
       // Request Permission (Required for iOS)
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         try {
-          const response = await DeviceOrientationEvent.requestPermission();
-          if (response !== 'granted') {
-            showNotification('Permission to access sensors denied.');
-            return;
+          await DeviceOrientationEvent.requestPermission();
+          // Request Motion Permission too if separate (iOS 13+)
+          if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+            await DeviceMotionEvent.requestPermission();
           }
         } catch (error) {
           console.error(error);
-          return;
         }
       }
 
       window.addEventListener('deviceorientation', onDeviceOrientation);
+      window.addEventListener('devicemotion', onDeviceMotion);
       isGyroActive = true;
       btnGyro.classList.add('active');
       showNotification('Gyro AR Mode: ON (Point your phone)');
@@ -536,6 +547,8 @@ function init() {
       gyroOffset = deviceOrientation.alpha;
     } else {
       window.removeEventListener('deviceorientation', onDeviceOrientation);
+      window.removeEventListener('devicemotion', onDeviceMotion);
+      motionVelocity = 0;
       isGyroActive = false;
       btnGyro.classList.remove('active');
       showNotification('Gyro AR Mode: OFF');
@@ -1211,7 +1224,21 @@ function animate() {
 
 function render() {
   if (window.update3DMovement) window.update3DMovement();
-  if (isGyroActive) updateCamera();
+  
+  if (isGyroActive) {
+    updateCamera();
+    
+    // Physical translation via acceleration
+    if (Math.abs(motionVelocity) > 0.001) {
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      dir.y = 0;
+      dir.normalize();
+      cameraTarget.add(dir.multiplyScalar(motionVelocity));
+      updateCamera();
+    }
+  }
+  
   if (isLaserActive) updateLaser();
   if (ghostObject) {
     if (reticle.visible) {
