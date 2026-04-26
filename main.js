@@ -543,14 +543,16 @@ function init() {
     const acc = e.acceleration || e.accelerationIncludingGravity;
     if (!acc) return;
     let accZ = acc.z || 0;
-    if (Math.abs(accZ) > 1.0) {
-      motionVelocity -= accZ * 0.015;
+    
+    // Increased sensitivity for walking
+    if (Math.abs(accZ) > 0.4) {
+      motionVelocity -= accZ * 0.025;
       if (!hasShownMotionHint) {
-        showNotification('Movement detected!');
+        showNotification('Walking detected!');
         hasShownMotionHint = true;
       }
     }
-    motionVelocity *= 0.85;
+    motionVelocity *= 0.8; // Snappier stopping
   };
 
   btnGyro.addEventListener('click', async () => {
@@ -1233,17 +1235,19 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // Basic Euler Mapping - extremely robust
-    // Alpha = Horizontal (Yaw), Beta = Vertical (Pitch)
-    const theta = (deviceOrientation.alpha - gyroBaseAlpha) * (Math.PI / 180);
-    const phi = Math.max(0.1, Math.min(Math.PI - 0.1, (deviceOrientation.beta) * (Math.PI / 180)));
+    // 1. Position camera AT the player's position (cameraTarget)
+    // We lift it slightly (0.8m) to be above the floor
+    camera.position.set(cameraTarget.x, 0.8, cameraTarget.z);
     
-    camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(phi) * Math.cos(theta);
-    camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(phi);
-    camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(phi) * Math.sin(theta);
-    camera.lookAt(cameraTarget);
+    // 2. Apply Direct First-Person Rotation
+    const alpha = THREE.MathUtils.degToRad(deviceOrientation.alpha - gyroBaseAlpha);
+    const beta = THREE.MathUtils.degToRad(deviceOrientation.beta);
+    const gamma = THREE.MathUtils.degToRad(deviceOrientation.gamma);
+    
+    // This mapping aligns the phone's "pointing" with the 3D world direction
+    camera.rotation.set(beta, -alpha, -gamma, 'YXZ');
   } else {
-    // Standard Orbit
+    // Standard Orbital View (Third Person)
     camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
     camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
     camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
