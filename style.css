@@ -332,24 +332,88 @@ input[type="range"]::-webkit-slider-thumb {
   #status-panel {
     top: 10px;
     left: 10px;
-    max-width: 180px;
+    max-width: 160px;
+    padding: 8px 12px;
+  }
+
+  .liquid-title {
+    font-size: 0.75rem;
+  }
+
+  .btn-mode {
+    padding: 4px 6px;
+    font-size: 0.55rem;
   }
   
+  #actions-container {
+    top: 10px;
+    right: 10px;
+    gap: 8px;
+  }
+
+  #actions-container .btn-secondary-pill {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
   #bottom-dock {
     bottom: 10px;
-    width: 95%;
-    flex-direction: row;
-    justify-content: center;
+    width: auto;
+    max-width: 95%;
     padding: 6px 12px;
+    gap: 8px;
+  }
+
+  #inventory-items {
+    gap: 4px;
+  }
+
+  .inventory-item {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
   }
 
   .dock-divider {
-    height: 20px;
+    height: 15px;
+    margin: 0 2px;
+  }
+
+  #action-buttons {
+    gap: 4px;
+  }
+
+  .btn-primary-pill, .btn-secondary-pill {
+    padding: 6px 12px;
+    font-size: 0.55rem;
   }
 
   #rotation-container {
-    bottom: 80px;
+    bottom: 70px;
     right: 10px;
-    width: 150px;
+    width: 130px;
+    padding: 10px;
+  }
+
+  .control-group label {
+    font-size: 0.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  #status-panel {
+    max-width: 140px;
+  }
+  
+  #actions-container .btn-secondary-pill {
+    width: 32px;
+    height: 32px;
+  }
+
+  .inventory-item {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
 }
