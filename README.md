@@ -19,6 +19,7 @@ An interactive, web-based 3D simulation for experimenting with lasers, optics, a
   - **Save/Load:** Persist your optical configurations to local storage.
   - **Theme Support:** Switch between Dark and Light modes for comfortable viewing.
 - **Visual Effects:** Realistic bloom/glow effects using Three.js post-processing.
+- **Gyroscope navigation on mobile 
 
 ## 🎮 Controls
 
