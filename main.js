@@ -216,6 +216,7 @@ function showNotification(message) {
 // Help State
 let helpActive = false;
 let helpStep = 0;
+let currentArrow = null;
 const helpSteps = [
   "Welcome to 3D Laser Lab! Let's get started.",
   "1. Select a LASER 🔦 from the dock and click on the floor to place it.",
@@ -225,11 +226,40 @@ const helpSteps = [
   "Great job! You've learned the basics. Enjoy experimenting!"
 ];
 
+function pointArrowAt(elementId) {
+  removeArrow();
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+  currentArrow = document.createElement('div');
+  currentArrow.className = 'help-arrow';
+  currentArrow.innerHTML = '⬇️';
+  currentArrow.style.left = `${rect.left + rect.width / 2}px`;
+  currentArrow.style.top = `${rect.top - 40}px`;
+  document.body.appendChild(currentArrow);
+}
+
+function removeArrow() {
+  if (currentArrow) {
+    currentArrow.remove();
+    currentArrow = null;
+  }
+}
+
 function advanceHelp(requiredStep) {
   if (!helpActive || helpStep !== requiredStep) return;
   helpStep++;
+  
+  removeArrow();
+  
   if (helpStep < helpSteps.length) {
     showNotification(helpSteps[helpStep]);
+    
+    // Set arrow for next action
+    if (helpStep === 1) pointArrowAt('item-laser');
+    if (helpStep === 2) pointArrowAt('item-mirror');
+    if (helpStep === 4) pointArrowAt('btn-start');
   } else {
     helpActive = false;
   }
