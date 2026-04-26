@@ -36,6 +36,9 @@ let currentMode = 'sandbox';
 let currentLevelIndex = 0;
 let unlockedLevelIndex = parseInt(localStorage.getItem('unlockedLevelIndex') || '0');
 let isLevelCompleting = false;
+let raceStartTime = 0;
+let raceTimerInterval = null;
+let currentRaceTime = 0;
 let inventoryCounts = {
   laser: Infinity,
   mirror: Infinity,
@@ -50,7 +53,8 @@ const levels = [
     hint: "Click the Laser icon and place it so it points directly at the target.",
     inventory: { laser: 1, mirror: 0, prism: 0, absorber: 0 },
     targets: [{ pos: [0, 0.1, -2] }],
-    fixedObjects: []
+    fixedObjects: [],
+    targetTime: 15
   },
   {
     title: "Level 2: Reflection",
@@ -61,7 +65,8 @@ const levels = [
     fixedObjects: [
       { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true },
       { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
-    ]
+    ],
+    targetTime: 25
   },
   {
     title: "Level 3: Splitting",
@@ -74,7 +79,8 @@ const levels = [
     ],
     fixedObjects: [
       { type: 'laser', pos: [-2, 0.05, 0], rotH: Math.PI/2, rotV: 0, fixed: true }
-    ]
+    ],
+    targetTime: 20
   },
   {
     title: "Level 4: Zig-Zag",
@@ -86,7 +92,8 @@ const levels = [
       { type: 'laser', pos: [-2, 0.05, 2], rotH: 0, rotV: 0, fixed: true },
       { type: 'absorber', pos: [-2, 0.075, 0.5], fixed: true },
       { type: 'absorber', pos: [0, 0.075, -1], fixed: true }
-    ]
+    ],
+    targetTime: 40
   },
   {
     title: "Level 5: The Perimeter",
@@ -96,7 +103,8 @@ const levels = [
     targets: [{ pos: [4, 0.1, 4] }],
     fixedObjects: [
       { type: 'laser', pos: [-4, 0.05, -4], rotH: 0, rotV: 0, fixed: true }
-    ]
+    ],
+    targetTime: 35
   },
   {
     title: "Level 6: Web of Light",
@@ -109,7 +117,8 @@ const levels = [
     ],
     fixedObjects: [
       { type: 'laser', pos: [0, 0.05, 3], rotH: Math.PI, rotV: 0, fixed: true }
-    ]
+    ],
+    targetTime: 45
   }
 ];
 
@@ -452,21 +461,33 @@ function init() {
     }
     updateLaser();
 
+    if (currentMode === 'racing') {
+      window.startRaceTimer();
+    } else {
+      window.stopRaceTimer();
+    }
+
     // Re-enable win condition after a short grace period
     setTimeout(() => {
       isLevelCompleting = false;
     }, 1500); 
+
   };
+
+  const btnRacing = document.getElementById('btn-mode-racing');
 
   btnSandbox.addEventListener('click', () => {
     currentMode = 'sandbox';
     btnSandbox.classList.add('active');
     btnChallenges.classList.remove('active');
+    btnRacing.classList.remove('active');
     levelOverlay.style.display = 'none';
+    document.getElementById('timer-display').style.display = 'none';
     document.getElementById('btn-hint').style.display = 'none';
     document.getElementById('btn-help').style.display = 'flex';
     inventoryCounts = { laser: Infinity, mirror: Infinity, prism: Infinity, absorber: Infinity };
     window.updateInventoryUI();
+    stopRaceTimer();
     clearAll();
   });
 
@@ -474,6 +495,21 @@ function init() {
     currentMode = 'challenges';
     btnChallenges.classList.add('active');
     btnSandbox.classList.remove('active');
+    btnRacing.classList.remove('active');
+    document.getElementById('timer-display').style.display = 'none';
+    document.getElementById('btn-help').style.display = 'none';
+    removeArrow();
+    helpActive = false;
+    stopRaceTimer();
+    window.loadLevel(currentLevelIndex);
+  });
+
+  btnRacing.addEventListener('click', () => {
+    currentMode = 'racing';
+    btnRacing.classList.add('active');
+    btnSandbox.classList.remove('active');
+    btnChallenges.classList.remove('active');
+    document.getElementById('timer-display').style.display = 'block';
     document.getElementById('btn-help').style.display = 'none';
     removeArrow();
     helpActive = false;
@@ -485,6 +521,45 @@ function init() {
       showNotification(`Hint: ${currentLevelHint}`);
     }
   });
+
+  const timerDisplay = document.getElementById('timer-display');
+  
+  window.updateRaceTimerUI = () => {
+    if (!timerDisplay) return;
+    const minutes = Math.floor(currentRaceTime / 60);
+    const seconds = Math.floor(currentRaceTime % 60);
+    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    const level = levels[currentLevelIndex];
+    if (level && level.targetTime) {
+      timerDisplay.innerText = `${timeStr} (Target: ${level.targetTime}s)`;
+      if (currentRaceTime > level.targetTime) {
+        timerDisplay.style.color = '#ff4444';
+      } else {
+        timerDisplay.style.color = 'var(--accent)';
+      }
+    } else {
+      timerDisplay.innerText = timeStr;
+    }
+  };
+
+  window.startRaceTimer = () => {
+    stopRaceTimer();
+    raceStartTime = Date.now();
+    currentRaceTime = 0;
+    updateRaceTimerUI();
+    raceTimerInterval = setInterval(() => {
+      currentRaceTime = (Date.now() - raceStartTime) / 1000;
+      updateRaceTimerUI();
+    }, 1000);
+  };
+
+  window.stopRaceTimer = () => {
+    if (raceTimerInterval) {
+      clearInterval(raceTimerInterval);
+      raceTimerInterval = null;
+    }
+  };
 
   document.getElementById('btn-help').addEventListener('click', () => {
     helpActive = true;
@@ -792,11 +867,28 @@ function updateLaser() {
       t.material.emissive.setHex(0x000000);
     }
   });
-  if (currentMode === 'challenges' && targetObjects.length > 0 && !isLevelCompleting && isLaserActive) {
+  if ((currentMode === 'challenges' || currentMode === 'racing') && targetObjects.length > 0 && !isLevelCompleting && isLaserActive) {
     if (targetObjects.every(t => t.userData.active)) {
       isLevelCompleting = true;
+      
+      let message = "Challenge Complete!";
+      if (currentMode === 'racing') {
+        window.stopRaceTimer();
+        const level = levels[currentLevelIndex];
+        const timeStr = currentRaceTime.toFixed(1) + "s";
+        if (level && level.targetTime) {
+          if (currentRaceTime <= level.targetTime) {
+            message = `🚀 Target Beaten! Time: ${timeStr} (Target: ${level.targetTime}s)`;
+          } else {
+            message = `Race Finished! Time: ${timeStr} (Target: ${level.targetTime}s)`;
+          }
+        } else {
+          message = `Race Finished! Time: ${timeStr}`;
+        }
+      }
+
       setTimeout(() => {
-        showNotification('Challenge Complete! Loading next level...');
+        showNotification(message);
         unlockedLevelIndex = Math.max(unlockedLevelIndex, currentLevelIndex + 1);
         localStorage.setItem('unlockedLevelIndex', unlockedLevelIndex);
         window.loadLevel(currentLevelIndex + 1);
