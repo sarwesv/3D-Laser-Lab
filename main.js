@@ -262,7 +262,7 @@ function init() {
         if (isDeleteMode) {
           selectedItemType = null;
           document.querySelectorAll('.inventory-item').forEach(i => {
-            if (i.id !== 'btn-delete') i.style.background = '';
+            if (i.id !== 'btn-delete') i.classList.remove('active');
           });
           removeGhost();
         }
