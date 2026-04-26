@@ -78,6 +78,24 @@ const levels = [
 init();
 animate();
 
+function showNotification(message) {
+  const container = document.getElementById('notification-container');
+  if (!container) return;
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.innerText = message;
+  
+  container.appendChild(notification);
+  
+  // Remove after animation finishes
+  setTimeout(() => {
+    if (notification.parentElement) {
+      container.removeChild(notification);
+    }
+  }, 3000);
+}
+
 function init() {
   container = document.getElementById('container');
 
@@ -153,7 +171,7 @@ function init() {
   document.getElementById('btn-start').addEventListener('click', () => {
     const hasLaser = objects.some(o => o.userData.type === 'laser');
     if (!isLaserActive && !hasLaser) {
-      alert('Please place at least one Laser Emitter first!');
+      showNotification('Please place at least one Laser Emitter first!');
       return;
     }
     isLaserActive = !isLaserActive;
@@ -527,13 +545,13 @@ function updateLaser() {
       isLevelCompleting = true;
       setTimeout(() => {
         if (currentLevelIndex < levels.length - 1) {
-          alert('Challenge Complete! Loading next level...');
+          showNotification('Challenge Complete! Loading next level...');
           unlockedLevelIndex = Math.max(unlockedLevelIndex, currentLevelIndex + 1);
           localStorage.setItem('unlockedLevelIndex', unlockedLevelIndex);
           window.loadLevel(currentLevelIndex + 1);
         } else {
-          alert('Congratulations! You have completed all challenges!');
-          isLevelCompleting = false;
+          showNotification('Congratulations! You have completed all challenges!');
+          isLevelCompleting = false; // Reset so they can keep playing the last level
         }
       }, 500);
     }
@@ -610,7 +628,7 @@ function setup3DInteractions() {
       if (objIntersects.length > 0) {
         const obj = objIntersects[0].object;
         if (isDeleteMode) {
-          if (obj.userData.isFixed) { alert("This object is fixed and cannot be removed!"); return; }
+          if (obj.userData.isFixed) { showNotification("This object is fixed and cannot be removed!"); return; }
           scene.remove(obj);
           objects = objects.filter(o => o !== obj);
           if (currentMode === 'challenges') { inventoryCounts[obj.userData.type]++; window.updateInventoryUI(); }
