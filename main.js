@@ -138,7 +138,9 @@ function init() {
   });
 
   document.getElementById('btn-clear').addEventListener('click', () => {
-    clearAll();
+    if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
+      clearAll();
+    }
   });
 
   const sliderH = document.getElementById('rotation-slider-h');
