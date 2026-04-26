@@ -1296,28 +1296,30 @@ function animate() {
   renderer.setAnimationLoop(render);
 }
 
+let frameCount = 0;
 function render() {
+  frameCount++;
+  
+  // 1. FORCE CAMERA UPDATE EVERY SINGLE FRAME
+  updateCamera();
+
   if (window.update3DMovement) window.update3DMovement();
   
   if (isGyroActive) {
-    // 1. Calculate and Apply Physical "Walking" movement
+    // Calculate and Apply Physical "Walking" movement
     if (Math.abs(motionVelocity) > 0.001) {
       const forwardDir = new THREE.Vector3(0, 0, -1);
       forwardDir.applyQuaternion(camera.quaternion);
-      forwardDir.y = 0; // Move only on X-Z plane
+      forwardDir.y = 0; 
       forwardDir.normalize();
-      
       cameraTarget.add(forwardDir.multiplyScalar(motionVelocity));
     }
-    
-    // 2. Refresh First-Person View
-    updateCamera();
   }
   
-  // LIVE DEBUG - MONITOR CAMERA ROTATION REGARDLESS OF AR STATE
+  // LIVE DEBUG - MONITOR CAMERA ROTATION + FRAME PROOF
   const camEl = document.getElementById('val-cam');
   if (camEl && camera) {
-    camEl.innerText = `${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
+    camEl.innerText = `F:${frameCount} | ${camera.rotation.x.toFixed(2)}, ${camera.rotation.y.toFixed(2)}, ${camera.rotation.z.toFixed(2)}`;
   }
   
   if (isLaserActive) updateLaser();
