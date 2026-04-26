@@ -515,6 +515,12 @@ function init() {
   };
 
   const onDeviceOrientation = (e) => {
+    const gyroStatus = document.getElementById('status-gyro');
+    if (gyroStatus) {
+      gyroStatus.innerText = 'OK';
+      gyroStatus.style.color = '#00ff00';
+    }
+
     if (!hasReceivedOrientation && (e.alpha !== null || e.beta !== null)) {
       showNotification('AR Sensors Active!');
       hasReceivedOrientation = true;
@@ -527,6 +533,7 @@ function init() {
     const beta = e.beta ? THREE.MathUtils.degToRad(e.beta) : 0;
     const gamma = e.gamma ? THREE.MathUtils.degToRad(e.gamma) : 0;
     
+    // Modern screen orientation check
     const screenAngle = (window.screen && window.screen.orientation) ? window.screen.orientation.angle : (window.orientation || 0);
     const orient = THREE.MathUtils.degToRad(screenAngle);
 
@@ -545,6 +552,12 @@ function init() {
   let motionVelocity = 0;
   let hasShownMotionHint = false;
   const onDeviceMotion = (e) => {
+    const motionStatus = document.getElementById('status-motion');
+    if (motionStatus) {
+      motionStatus.innerText = 'OK';
+      motionStatus.style.color = '#00ff00';
+    }
+
     const acc = e.acceleration || e.accelerationIncludingGravity;
     if (!acc) return;
     let accZ = acc.z || 0;
@@ -559,6 +572,7 @@ function init() {
   };
 
   btnGyro.addEventListener('click', async () => {
+    const sensorStatus = document.getElementById('sensor-status');
     if (!isGyroActive) {
       let granted = false;
       try {
@@ -581,6 +595,7 @@ function init() {
         isGyroActive = true;
         btnGyro.classList.add('active');
         btnRecenter.style.display = 'flex';
+        if (sensorStatus) sensorStatus.style.display = 'block';
         showNotification('AR Mode Enabled');
       } else {
         showNotification('Sensor permission required for AR.');
@@ -593,6 +608,7 @@ function init() {
       hasReceivedOrientation = false;
       btnGyro.classList.remove('active');
       btnRecenter.style.display = 'none';
+      if (sensorStatus) sensorStatus.style.display = 'none';
       showNotification('AR Mode Disabled');
     }
   });
@@ -1235,14 +1251,18 @@ function setup3DInteractions() {
 function updateCamera() {
   if (!camera) return;
   if (isGyroActive) {
-    // Apply full gyro rotation
+    // FORCE camera to follow gyro by copy/multiplying directly
     camera.quaternion.copy(gyroBaseQuaternion).multiply(gyroQuaternion);
     
-    // Position camera based on its orientation and orbit radius
+    // Position camera based on the direction it's pointing
     const direction = new THREE.Vector3(0, 0, 1);
     direction.applyQuaternion(camera.quaternion);
     camera.position.copy(cameraTarget).add(direction.multiplyScalar(cameraOrbit.radius));
+    
+    // Ensure the matrix is updated for Three.js
+    camera.updateMatrixWorld(true);
   } else {
+    // Standard Mouse/Touch Orbit
     camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
     camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
     camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
