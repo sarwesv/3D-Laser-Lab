@@ -1361,8 +1361,10 @@ function render() {
     }
   } catch (err) {
     if (camEl) {
-      camEl.innerText = `ERROR: ${err.message.substring(0, 30)}`;
-      camEl.style.color = 'red';
+      camEl.innerText = `ERR: ${err.message}`;
+      camEl.style.color = '#ff0000';
+      camEl.style.fontSize = '0.6rem';
+      camEl.style.background = 'rgba(255,255,255,0.9)';
     }
     console.error(err);
   }
