@@ -24,11 +24,56 @@ let isInfiniteGrid = false;
 
 let selectedObject = null;
 let objects = [];
+let targetObjects = [];
 let previousMouse = { x: 0, y: 0 };
 let currentRotationH = 0;
 let currentRotationV = 0;
 let laserSpeed = 4.0;
 let allPaths = []; // Array of { points, distances }
+
+// Gamification State
+let currentMode = 'sandbox'; // 'sandbox' or 'challenges'
+let currentLevelIndex = 0;
+let unlockedLevelIndex = parseInt(localStorage.getItem('unlockedLevelIndex') || '0');
+let isLevelCompleting = false;
+let inventoryCounts = {
+  laser: Infinity,
+  mirror: Infinity,
+  prism: Infinity,
+  absorber: Infinity
+};
+
+const levels = [
+  {
+    title: "Level 1: The Basics",
+    instructions: "Place a laser emitter to hit the target directly.",
+    inventory: { laser: 1, mirror: 0, prism: 0, absorber: 0 },
+    targets: [{ pos: [0, 0.5, -2] }],
+    fixedObjects: []
+  },
+  {
+    title: "Level 2: Reflection",
+    instructions: "A laser is blocked! Use a mirror to redirect it to the target.",
+    inventory: { laser: 0, mirror: 1, prism: 0, absorber: 0 },
+    targets: [{ pos: [2, 0.5, 0] }],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.02, 0], rotH: -Math.PI/2, rotV: 0, fixed: true },
+      { type: 'absorber', pos: [0, 0.075, 0], fixed: true }
+    ]
+  },
+  {
+    title: "Level 3: Splitting",
+    instructions: "Use a prism to hit both targets simultaneously.",
+    inventory: { laser: 0, mirror: 0, prism: 1, absorber: 0 },
+    targets: [
+      { pos: [1.5, 0.5, -1.5] },
+      { pos: [1.5, 0.5, 1.5] }
+    ],
+    fixedObjects: [
+      { type: 'laser', pos: [-2, 0.02, 0], rotH: -Math.PI/2, rotV: 0, fixed: true }
+    ]
+  }
+];
 
 init();
 animate();
@@ -140,7 +185,113 @@ function init() {
   document.getElementById('btn-clear').addEventListener('click', () => {
     if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
       clearAll();
+      if (currentMode === 'challenges') {
+        loadLevel(currentLevelIndex);
+      }
     }
+  });
+
+  // Mode Toggles
+  const btnSandbox = document.getElementById('btn-mode-sandbox');
+  const btnChallenges = document.getElementById('btn-mode-challenges');
+  const levelOverlay = document.getElementById('level-overlay');
+
+  window.updateInventoryUI = () => {
+    Object.keys(inventoryCounts).forEach(type => {
+      const item = document.getElementById(`item-${type}`);
+      if (!item) return;
+      
+      let badge = item.querySelector('.item-count');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'item-count';
+        item.appendChild(badge);
+      }
+      
+      if (currentMode === 'challenges') {
+        badge.style.display = 'block';
+        badge.innerText = inventoryCounts[type];
+        if (inventoryCounts[type] <= 0) {
+          item.style.opacity = '0.4';
+          item.style.pointerEvents = 'none';
+        } else {
+          item.style.opacity = '1';
+          item.style.pointerEvents = 'auto';
+        }
+      } else {
+        badge.style.display = 'none';
+        item.style.opacity = '1';
+        item.style.pointerEvents = 'auto';
+      }
+    });
+  };
+
+  window.loadLevel = (index) => {
+    isLevelCompleting = false;
+    clearAll();
+    currentLevelIndex = index;
+    const level = levels[index];
+    
+    document.getElementById('level-title').innerText = level.title;
+    document.getElementById('level-instructions').innerText = level.instructions;
+    levelOverlay.style.display = 'block';
+
+    // Set inventory
+    inventoryCounts = { ...level.inventory };
+    window.updateInventoryUI();
+
+    // Create Targets
+    level.targets.forEach(t => {
+      const geom = new THREE.SphereGeometry(0.15, 16, 16);
+      const mat = new THREE.MeshStandardMaterial({ 
+        color: 0x444444, 
+        emissive: 0x000000, 
+        roughness: 0.5 
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(t.pos[0], t.pos[1], t.pos[2]);
+      mesh.userData.isTarget = true;
+      mesh.userData.active = false;
+      scene.add(mesh);
+      targetObjects.push(mesh);
+    });
+
+    // Create Fixed Objects
+    level.fixedObjects.forEach(o => {
+      currentRotationH = o.rotH || 0;
+      currentRotationV = o.rotV || 0;
+      placeObject(o.type, null, o.pos, null, o.fixed);
+    });
+
+    // Reset rotation settings
+    currentRotationH = 0;
+    currentRotationV = 0;
+
+    // Auto-start laser if we have fixed emitters
+    if (level.fixedObjects.some(o => o.type === 'laser')) {
+      isLaserActive = true;
+      const btn = document.getElementById('btn-start');
+      btn.textContent = 'Stop Laser';
+      btn.classList.add('active');
+    }
+    updateLaser();
+  };
+
+  btnSandbox.addEventListener('click', () => {
+    currentMode = 'sandbox';
+    btnSandbox.classList.add('active');
+    btnChallenges.classList.remove('active');
+    levelOverlay.style.display = 'none';
+    inventoryCounts = { laser: Infinity, mirror: Infinity, prism: Infinity, absorber: Infinity };
+    window.updateInventoryUI();
+    clearAll();
+  });
+
+  btnChallenges.addEventListener('click', () => {
+    currentMode = 'challenges';
+    btnChallenges.classList.add('active');
+    btnSandbox.classList.remove('active');
+    window.loadLevel(currentLevelIndex);
   });
 
   const sliderH = document.getElementById('rotation-slider-h');
@@ -152,6 +303,7 @@ function init() {
     currentRotationH = h;
     currentRotationV = v;
     if (selectedObject) {
+      if (selectedObject.userData.isFixed) return;
       selectedObject.userData.rotationH = h;
       selectedObject.userData.rotationV = v;
       selectedObject.rotation.set(0, 0, 0);
@@ -234,7 +386,13 @@ function removeGhost() {
   }
 }
 
-function placeObject(type, matrix, savedPos = null, savedQuat = null) {
+function placeObject(type, matrix, savedPos = null, savedQuat = null, isFixed = false) {
+  if (currentMode === 'challenges' && !isFixed) {
+    if (inventoryCounts[type] <= 0) return;
+    inventoryCounts[type]--;
+    window.updateInventoryUI();
+  }
+
   let geometry, material, mesh;
   if (type === 'laser') {
     geometry = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 16);
@@ -275,6 +433,11 @@ function placeObject(type, matrix, savedPos = null, savedQuat = null) {
   }
   if (savedQuat) mesh.quaternion.fromArray(savedQuat);
   mesh.userData.type = type;
+  mesh.userData.isFixed = isFixed;
+  if (isFixed) {
+    // Visually distinguish fixed objects
+    mesh.material.emissive = new THREE.Color(0x222222);
+  }
   scene.add(mesh);
   objects.push(mesh);
   if (isLaserActive) updateLaser();
@@ -313,6 +476,9 @@ function updateLaser() {
   const maxDepth = 24;
   const raycaster = new THREE.Raycaster();
 
+  // Reset targets
+  targetObjects.forEach(t => t.userData.active = false);
+
   while (rayQueue.length > 0 && allPaths.length < 128) {
     const { pos, dir, depth, color } = rayQueue.shift();
     if (depth > maxDepth) continue;
@@ -327,13 +493,21 @@ function updateLaser() {
     while (!branchFinished) {
       raycaster.set(currentPos, currentDir);
       
-      const targets = [...objects.filter(o => o.userData.type !== 'laser')];
+      const targets = [...objects.filter(o => o.userData.type !== 'laser'), ...targetObjects];
       if (floor) targets.push(floor);
       
       const intersects = raycaster.intersectObjects(targets);
 
       if (intersects.length > 0) {
         const hit = intersects[0];
+
+        if (hit.object.userData && hit.object.userData.isTarget) {
+          hit.object.userData.active = true;
+          // Lasers pass through targets
+          currentPos.copy(hit.point).add(currentDir.clone().multiplyScalar(0.01));
+          continue; 
+        }
+
         totalDist += hit.distance;
         pathPoints.push(hit.point.clone());
         distances.push(totalDist);
@@ -399,6 +573,37 @@ function updateLaser() {
   while (laserBeams.length > allPaths.length) {
     const beam = laserBeams.pop();
     scene.remove(beam);
+  }
+
+  // Update Target Visuals
+  targetObjects.forEach(t => {
+    if (t.userData.active) {
+      t.material.color.setHex(0xffff00); // Yellow
+      t.material.emissive.setHex(0xaaaa00);
+    } else {
+      t.material.color.setHex(0x444444); // Dark Gray
+      t.material.emissive.setHex(0x000000);
+    }
+  });
+
+  // Check Win Condition
+  if (currentMode === 'challenges' && targetObjects.length > 0 && !isLevelCompleting) {
+    const allHit = targetObjects.every(t => t.userData.active);
+    if (allHit) {
+      isLevelCompleting = true;
+      // Delay slightly to let the user see the win
+      setTimeout(() => {
+        if (currentLevelIndex < levels.length - 1) {
+          alert('Challenge Complete! Loading next level...');
+          unlockedLevelIndex = Math.max(unlockedLevelIndex, currentLevelIndex + 1);
+          localStorage.setItem('unlockedLevelIndex', unlockedLevelIndex);
+          window.loadLevel(currentLevelIndex + 1);
+        } else {
+          alert('Congratulations! You have completed all challenges!');
+          isLevelCompleting = false; // Reset so they can keep playing the last level
+        }
+      }, 500);
+    }
   }
 }
 
@@ -481,8 +686,18 @@ function setup3DInteractions() {
       if (objIntersects.length > 0) {
         const obj = objIntersects[0].object;
         if (isDeleteMode) {
+          if (obj.userData.isFixed) {
+            alert("This object is fixed and cannot be removed!");
+            return;
+          }
           scene.remove(obj);
           objects = objects.filter(o => o !== obj);
+          
+          if (currentMode === 'challenges') {
+            inventoryCounts[obj.userData.type]++;
+            window.updateInventoryUI();
+          }
+
           if (selectedObject === obj) {
             selectedObject = null;
             document.getElementById('rotation-container').style.display = 'none';
@@ -490,6 +705,15 @@ function setup3DInteractions() {
           if (isLaserActive) updateLaser();
           return;
         }
+        
+        if (obj.userData.isFixed) {
+          // You can't rotate fixed objects
+          if (obj.userData.type === 'laser' || obj.userData.type === 'mirror') {
+             // Show rotation but maybe keep it read only? Or just don't allow.
+             // For now, let's allow viewing rotation but we won't show the slider if it's fixed.
+          }
+        }
+
         if (obj.userData.type === 'laser' || obj.userData.type === 'mirror') {
           selectedObject = obj;
           selectedItemType = null;
@@ -608,6 +832,8 @@ function render() {
 function clearAll() {
   objects.forEach(o => scene.remove(o));
   objects = [];
+  targetObjects.forEach(t => scene.remove(t));
+  targetObjects = [];
   laserBeams.forEach(b => scene.remove(b));
   laserBeams = [];
   selectedObject = null;
