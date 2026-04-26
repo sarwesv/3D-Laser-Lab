@@ -415,7 +415,7 @@ function init() {
   };
 
   window.loadLevel = (index) => {
-    isLevelCompleting = false;
+    isLevelCompleting = true; // Block completion checks during loading
     clearAll();
     currentLevelIndex = index;
     const level = levels[index] || generateRandomLevel(index);
@@ -451,6 +451,11 @@ function init() {
       btn.classList.add('active');
     }
     updateLaser();
+
+    // Re-enable win condition after a short grace period
+    setTimeout(() => {
+      isLevelCompleting = false;
+    }, 1500); 
   };
 
   btnSandbox.addEventListener('click', () => {
