@@ -23,6 +23,9 @@ let keys = {};
 let cameraOrbit = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 3 };
 let cameraTarget = new THREE.Vector3(0, 0, 0);
 let isInfiniteGrid = false;
+let isGyroActive = false;
+let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
+let gyroOffset = 0; // For centering
 
 let selectedObject = null;
 let objects = [];
@@ -499,6 +502,45 @@ function init() {
   };
 
   const btnRacing = document.getElementById('btn-mode-racing');
+  const btnGyro = document.getElementById('btn-gyro');
+
+  // Gyro Handling
+  const onDeviceOrientation = (e) => {
+    deviceOrientation.alpha = e.alpha || 0;
+    deviceOrientation.beta = e.beta || 0;
+    deviceOrientation.gamma = e.gamma || 0;
+  };
+
+  btnGyro.addEventListener('click', async () => {
+    if (!isGyroActive) {
+      // Request Permission (Required for iOS)
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const response = await DeviceOrientationEvent.requestPermission();
+          if (response !== 'granted') {
+            showNotification('Permission to access sensors denied.');
+            return;
+          }
+        } catch (error) {
+          console.error(error);
+          return;
+        }
+      }
+
+      window.addEventListener('deviceorientation', onDeviceOrientation);
+      isGyroActive = true;
+      btnGyro.classList.add('active');
+      showNotification('Gyro AR Mode: ON (Point your phone)');
+      
+      // Initial offset to "center" the view
+      gyroOffset = deviceOrientation.alpha;
+    } else {
+      window.removeEventListener('deviceorientation', onDeviceOrientation);
+      isGyroActive = false;
+      btnGyro.classList.remove('active');
+      showNotification('Gyro AR Mode: OFF');
+    }
+  });
 
   btnSandbox.addEventListener('click', () => {
     currentMode = 'sandbox';
@@ -949,12 +991,6 @@ function setup3DInteractions() {
     cameraOrbit.radius = Math.max(0.5, Math.min(20, cameraOrbit.radius + e.deltaY * 0.005));
     updateCamera();
   });
-  function updateCamera() {
-    camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
-    camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
-    camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
-    camera.lookAt(cameraTarget);
-  }
   updateCamera();
   const getMousePos = (e) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -1026,7 +1062,7 @@ function setup3DInteractions() {
       reticle.visible = false; 
     }
     
-    if (!isDragging || isDraggingObject) return;
+    if (!isDragging || isDraggingObject || isGyroActive) return;
     
     const deltaX = e.clientX - previousMouse.x;
     const deltaY = e.clientY - previousMouse.y;
@@ -1139,6 +1175,20 @@ function setup3DInteractions() {
   };
 }
 
+function updateCamera() {
+  if (!camera) return;
+  if (isGyroActive) {
+    // Map Gyro to Orbit
+    cameraOrbit.theta = (deviceOrientation.alpha - gyroOffset) * (Math.PI / 180);
+    cameraOrbit.phi = Math.max(0.1, Math.min(Math.PI - 0.1, (deviceOrientation.beta) * (Math.PI / 180)));
+  }
+  
+  camera.position.x = cameraTarget.x + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.cos(cameraOrbit.theta);
+  camera.position.y = cameraTarget.y + cameraOrbit.radius * Math.cos(cameraOrbit.phi);
+  camera.position.z = cameraTarget.z + cameraOrbit.radius * Math.sin(cameraOrbit.phi) * Math.sin(cameraOrbit.theta);
+  camera.lookAt(cameraTarget);
+}
+
 function updateInfiniteGrid() {
   if (!isInfiniteGrid || !grid || !floor) return;
   const gridSize = 1; 
@@ -1161,6 +1211,7 @@ function animate() {
 
 function render() {
   if (window.update3DMovement) window.update3DMovement();
+  if (isGyroActive) updateCamera();
   if (isLaserActive) updateLaser();
   if (ghostObject) {
     if (reticle.visible) {
