@@ -89,5 +89,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 Created by [Sarwesv](https://github.com/sarwesv)
-_
-_
+
