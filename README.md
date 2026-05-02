@@ -1,5 +1,5 @@
 # AR Laser Lab 🔦
-
+_ *** The README.md might not be up to date, but the project page might still be ***_
 An interactive, web-based 3D optics simulation with Augmented Reality features. Built with **Three.js** and **Vite**.
 
 [![Vite](https://img.shields.io/badge/Vite-8.0-646CFF.svg)](https://vitejs.dev/)
