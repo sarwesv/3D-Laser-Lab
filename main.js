@@ -260,11 +260,24 @@ function pointArrowAt(elementId) {
   if (!el) return;
 
   const rect = el.getBoundingClientRect();
+  const screenHeight = window.innerHeight;
+  const isTopHalf = rect.top < screenHeight / 2;
+
   currentArrow = document.createElement('div');
   currentArrow.className = 'help-arrow';
-  currentArrow.innerHTML = '⬇️';
-  currentArrow.style.left = `${rect.left + rect.width / 2}px`;
-  currentArrow.style.top = `${rect.top - 40}px`;
+  
+  if (isTopHalf) {
+    // Target is in top half, point UP from BELOW
+    currentArrow.innerHTML = '⬆️';
+    currentArrow.style.left = `${rect.left + rect.width / 2}px`;
+    currentArrow.style.top = `${rect.bottom + 10}px`;
+  } else {
+    // Target is in bottom half, point DOWN from ABOVE
+    currentArrow.innerHTML = '⬇️';
+    currentArrow.style.left = `${rect.left + rect.width / 2}px`;
+    currentArrow.style.top = `${rect.top - 50}px`; // 40-50px above
+  }
+  
   document.body.appendChild(currentArrow);
 }
 
@@ -285,8 +298,8 @@ function advanceHelp(requiredStep) {
     showNotification(helpSteps[helpStep]);
     
     // Briefly point to relevant UI elements
-    if (helpStep === 1) pointArrowAt('status-panel');
-    if (helpStep === 2) pointArrowAt('bottom-dock');
+    if (helpStep === 1) pointArrowAt('mode-selector');
+    if (helpStep === 2) pointArrowAt('inventory-items');
     if (helpStep === 3) pointArrowAt('rotation-container');
     if (helpStep === 4) pointArrowAt('btn-gyro');
     if (helpStep === 5) pointArrowAt('btn-start');
