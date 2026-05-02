@@ -19,10 +19,6 @@ An interactive, web-based 3D optics simulation with Augmented Reality features. 
   - **Concave Lenses:** Radial divergence optics for wide-angle beam manipulation.
   - **Absorbers:** Tactical blocks to manage stray light.
 
-## 🛠️ Developer Tools
-Access the browser console (F12) to use these helper commands:
-- `window.skipLevel()`: Instantly advance to the next challenge.
-- `window.loadLevel(index)`: Jump to a specific level.
 
 - **Game Modes:**
   - **Sandbox:** Infinite workspace for free-form experimentation.
@@ -60,6 +56,7 @@ Access the browser console (F12) to use these helper commands:
 ## 🌐 Live Demo
 
 Experience the lab directly in your browser: [3D Laser Lab](https://sarwesv.github.io/3D-Laser-Lab/)
+(Yoy don't need to do anything to use it on the browser, since it is Github pages site.)
 
 
 
