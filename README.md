@@ -33,7 +33,7 @@ An interactive, web-based 3D simulation for experimenting with lasers, optics, a
 - **Delete:** Toggle the **Delete** mode in the inventory and click objects to remove them.
 - **Rotate:** Use the sliders in the control panel to adjust Horizontal and Vertical angles for Lasers and Mirrors.
 
-## 🛠️ Installation & Setup
+## 🛠️ Installation & Setup (You can also press [HERE](https://sarwesv.github.io/3D-Laser-Lab/)
 
 1. **Clone the repository:**
    ```bash
@@ -58,7 +58,7 @@ An interactive, web-based 3D simulation for experimenting with lasers, optics, a
 
 ## 🌐 Deployment
 
-The project is configured for easy deployment with Vite. Simply run `npm run build` and deploy the `dist` folder to any static hosting provider (GitHub Pages, Vercel, Netlify, etc.). You can also run it by pressing [HERE](https://sarwesv.github.io/3D-Laser-Lab/)
+The project is configured for easy deployment with Vite. Simply run `npm run build` and deploy the `dist` folder to any static hosting provider (GitHub Pages, Vercel, Netlify, etc.). 
 
 ## 📜 License
 
