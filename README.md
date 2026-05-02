@@ -1,6 +1,6 @@
-# 3D Laser Lab 🔦
+# AR Laser Lab 🔦
 
-An interactive, web-based 3D optics simulation built with **Three.js** and **Vite**. Experiment with light manipulation, solve complex puzzles, or race against the clock in a polished, glass-morphism workspace.
+An interactive, web-based 3D optics simulation with Augmented Reality features. Built with **Three.js** and **Vite**.
 
 [![Vite](https://img.shields.io/badge/Vite-8.0-646CFF.svg)](https://vitejs.dev/)
 [![Three.js](https://img.shields.io/badge/Three.js-r184-black.svg)](https://threejs.org/)
