@@ -48,7 +48,7 @@ An interactive, web-based 3D optics simulation built with **Three.js** and **Vit
 - **FX:** [EffectComposer](https://threejs.org/docs/#examples/en/postprocessing/EffectComposer) (UnrealBloomPass)
 - **Styling:** Vanilla CSS with Glassmorphism principles.
 
-## 📦 Installation
+## 📦 Installation & Setup (You can also press [HERE](https://sarwesv.github.io/3D-Laser-Lab/))
 
 1. **Clone the repository:**
    ```bash
@@ -74,6 +74,10 @@ An interactive, web-based 3D optics simulation built with **Three.js** and **Vit
 ## 🌐 Live Demo
 
 Experience the lab directly in your browser: [3D Laser Lab Live](https://sarwesv.github.io/3D-Laser-Lab/)
+
+## 📜 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 Created by [Sarwesv](https://github.com/sarwesv)
