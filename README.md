@@ -19,10 +19,6 @@ An interactive, web-based 3D optics simulation with Augmented Reality features. 
   - **Prisms:** Triple-ray beam splitters for complex routing.
   - **Concave Lenses:** Radial divergence optics for wide-angle beam manipulation.
   - **Absorbers:** Tactical blocks to manage stray light.
-## 🛠️ Developer Tools
-Access the browser console (F12) to use these helper commands:
-- `window.skipLevel()`: Instantly advance to the next challenge.
-- `window.loadLevel(index)`: Jump to a specific level.
 
 - **Game Modes:**
   - **Sandbox:** Infinite workspace for free-form experimentation.
