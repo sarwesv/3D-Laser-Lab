@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
-  base: '/AR-Laser-Lab/',
+  base: '/3D-Laser-Lab/',
   server: {
     https: true,
     host: '0.0.0.0',
