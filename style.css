@@ -328,6 +328,56 @@ input[type="range"]::-webkit-slider-thumb {
   to { transform: translateY(-15px) translateX(-50%); }
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.modal-content {
+  width: 320px;
+  padding: 25px;
+  border-radius: var(--radius-module);
+  text-align: center;
+  opacity: 1 !important; /* Always visible when shown */
+  background: var(--glass-bg-heavy);
+}
+
+.modal-title {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modal-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.modal-actions button {
+  min-width: 100px;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   #status-panel {

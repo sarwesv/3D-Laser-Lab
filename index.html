@@ -85,6 +85,19 @@
     </div>
 
     <div id="notification-container"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="modal-container" class="modal-overlay" style="display: none;">
+      <div class="glass-module modal-content">
+        <h2 class="modal-title">Clear Workspace?</h2>
+        <p class="modal-text">This will remove all placed objects. This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button id="btn-modal-cancel" class="btn-secondary-pill">Cancel</button>
+          <button id="btn-modal-confirm" class="btn-primary-pill">Clear All</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="main.js"></script>
   </body>
 </html>

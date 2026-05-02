@@ -494,12 +494,29 @@ function init() {
   });
 
   document.getElementById('btn-clear').addEventListener('click', () => {
-    if (window.confirm('Are you sure you want to clear all objects? This cannot be undone.')) {
+    const modal = document.getElementById('modal-container');
+    modal.style.display = 'flex';
+    
+    const confirmBtn = document.getElementById('btn-modal-confirm');
+    const cancelBtn = document.getElementById('btn-modal-cancel');
+    
+    // Clean up previous listeners to prevent multiple triggers
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
       clearAll();
       if (currentMode === 'challenges') {
         window.loadLevel(currentLevelIndex);
       }
-    }
+      modal.style.display = 'none';
+    });
+    
+    newCancelBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
   });
 
   const btnSandbox = document.getElementById('btn-mode-sandbox');
