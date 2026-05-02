@@ -51,6 +51,7 @@ let inventoryCounts = {
   laser: Infinity,
   mirror: Infinity,
   prism: Infinity,
+  lens: Infinity,
   absorber: Infinity
 };
 
@@ -232,12 +233,13 @@ let helpActive = false;
 let helpStep = 0;
 let currentArrow = null;
 const helpSteps = [
-  "Welcome to 3D Laser Lab! Let's get started.",
-  "1. Select a LASER 🔦 from the dock and click on the floor to place it.",
-  "2. Select a MIRROR 🪞 and place it in the laser's path.",
-  "3. Click a placed mirror to see ROTATION SLIDERS in the bottom-right.",
-  "4. Click START to fire the laser!",
-  "Great job! You've learned the basics. Enjoy experimenting!"
+  "Welcome to 3D Laser Lab! Here's a quick guide to the interface.",
+  "🕹️ MODES: Use the top-left panel to switch between Sandbox (free play), Challenges (puzzles), and Racing (timed puzzles).",
+  "📦 INVENTORY: Select items from the bottom dock. Click the floor to place them, or drag existing objects to move them.",
+  "⚙️ CONTROLS: Select a placed Laser or Mirror to reveal rotation sliders in the bottom-right.",
+  "📱 AR MODE: On mobile, tap the phone icon to walk through your creation using your device's sensors.",
+  "🚀 ACTION: Press START to fire the lasers. Use the 🌐 icon to toggle an infinite workspace that follows you.",
+  "Happy experimenting! Tap the ❓ icon anytime to see this guide again."
 ];
 
 function pointArrowAt(elementId) {
@@ -262,7 +264,7 @@ function removeArrow() {
 }
 
 function advanceHelp(requiredStep) {
-  if (!helpActive || helpStep !== requiredStep) return;
+  if (!helpActive) return;
   helpStep++;
   
   removeArrow();
@@ -270,10 +272,15 @@ function advanceHelp(requiredStep) {
   if (helpStep < helpSteps.length) {
     showNotification(helpSteps[helpStep]);
     
-    // Set arrow for next action
-    if (helpStep === 1) pointArrowAt('item-laser');
-    if (helpStep === 2) pointArrowAt('item-mirror');
-    if (helpStep === 4) pointArrowAt('btn-start');
+    // Briefly point to relevant UI elements
+    if (helpStep === 1) pointArrowAt('status-panel');
+    if (helpStep === 2) pointArrowAt('bottom-dock');
+    if (helpStep === 3) pointArrowAt('rotation-container');
+    if (helpStep === 4) pointArrowAt('btn-gyro');
+    if (helpStep === 5) pointArrowAt('btn-start');
+
+    // Auto-advance the educational slides every 4 seconds
+    setTimeout(() => advanceHelp(helpStep), 4000);
   } else {
     helpActive = false;
   }
@@ -453,6 +460,15 @@ function init() {
   window.loadLevel = (index) => {
     isLevelCompleting = true; // Block completion checks during loading
     clearAll();
+
+    // Reset camera and motion state for the new level
+    cameraTarget.set(0, 0, 0);
+    cameraOrbit.theta = Math.PI / 4;
+    cameraOrbit.phi = Math.PI / 4;
+    cameraOrbit.radius = 3;
+    motionVelocity = 0;
+    if (isInfiniteGrid) updateInfiniteGrid();
+
     currentLevelIndex = index;
     const level = levels[index] || generateRandomLevel(index);
     currentLevelHint = level.hint || "No hint available for this level.";
@@ -586,6 +602,15 @@ function init() {
     document.getElementById('btn-help').style.display = 'flex';
     inventoryCounts = { laser: Infinity, mirror: Infinity, prism: Infinity, absorber: Infinity };
     window.updateInventoryUI();
+
+    // Reset camera and motion state
+    cameraTarget.set(0, 0, 0);
+    cameraOrbit.theta = Math.PI / 4;
+    cameraOrbit.phi = Math.PI / 4;
+    cameraOrbit.radius = 3;
+    motionVelocity = 0;
+    if (isInfiniteGrid) updateInfiniteGrid();
+
     stopRaceTimer();
     clearAll();
   });
