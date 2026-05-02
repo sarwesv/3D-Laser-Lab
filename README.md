@@ -1,6 +1,4 @@
- AR Laser Lab 🔦
-
-_*** The README.md might not be up to date, but the project page might still be ***_
+# 3D Laser Lab 🔦
 
 An interactive, web-based 3D optics simulation with Augmented Reality features. Built with **Three.js** and **Vite**.
 
@@ -21,12 +19,16 @@ An interactive, web-based 3D optics simulation with Augmented Reality features. 
   - **Concave Lenses:** Radial divergence optics for wide-angle beam manipulation.
   - **Absorbers:** Tactical blocks to manage stray light.
 
+## 🛠️ Developer Tools
+Access the browser console (F12) to use these helper commands:
+- `window.skipLevel()`: Instantly advance to the next challenge.
+- `window.loadLevel(index)`: Jump to a specific level.
+
 - **Game Modes:**
   - **Sandbox:** Infinite workspace for free-form experimentation.
   - **Challenges:** Solve 7 progressive levels designed to test your logic.
   - **Racing:** Compete for the fastest completion time.
 
-  - **Racing:** A high-stakes mode where you must beat the target time to unlock the next level.
 - **Immersive Workspace:**
   - **AR-Ready Gyroscope:** Use your mobile device's sensors to walk through your 3D creation.
   - **Infinite Grid:** Toggleable grid that follows the camera for unlimited building space.
