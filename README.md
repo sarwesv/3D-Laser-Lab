@@ -56,7 +56,7 @@ An interactive, web-based 3D optics simulation with Augmented Reality features. 
 ## 🌐 Live Demo
 
 Experience the lab directly in your browser: [3D Laser Lab](https://sarwesv.github.io/3D-Laser-Lab/)
-(Yoy don't need to do anything to use it on the browser, since it is Github pages site.)
+(You don't need to do anything to use it on the browser, since it is Github pages site.)
 
 
 
