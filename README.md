@@ -1,4 +1,4 @@
-__# AR Laser Lab 🔦
+ AR Laser Lab 🔦
 
 _*** The README.md might not be up to date, but the project page might still be ***_
 
