@@ -1,4 +1,5 @@
-_# AR Laser Lab 🔦
+__# AR Laser Lab 🔦
+
 _*** The README.md might not be up to date, but the project page might still be ***_
 
 An interactive, web-based 3D optics simulation with Augmented Reality features. Built with **Three.js** and **Vite**.
@@ -86,4 +87,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 Created by [Sarwesv](https://github.com/sarwesv)
+_
 _
