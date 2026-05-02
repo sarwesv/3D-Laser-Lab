@@ -56,7 +56,14 @@ Access the browser console (F12) to use these helper commands:
 - **FX:** [EffectComposer](https://threejs.org/docs/#examples/en/postprocessing/EffectComposer) (UnrealBloomPass)
 - **Styling:** Vanilla CSS with Glassmorphism principles.
 
-## 📦 Installation & Setup (You can also press [HERE](https://sarwesv.github.io/3D-Laser-Lab/))
+
+## 🌐 Live Demo
+
+Experience the lab directly in your browser: [3D Laser Lab](https://sarwesv.github.io/3D-Laser-Lab/)
+
+
+
+## 📦 Installation & Setup 
 
 1. **Clone the repository:**
    ```bash
@@ -79,9 +86,6 @@ Access the browser console (F12) to use these helper commands:
    npm run build
    ```
 
-## 🌐 Live Demo
-
-Experience the lab directly in your browser: [3D Laser Lab Live](https://sarwesv.github.io/3D-Laser-Lab/)
 
 ## 📜 License
 
