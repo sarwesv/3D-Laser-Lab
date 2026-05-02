@@ -259,7 +259,27 @@ function pointArrowAt(elementId) {
   const el = document.getElementById(elementId);
   if (!el) return;
 
+  // If element is hidden, temporarily show it to get dimensions
+  const wasHidden = el.style.display === 'none';
+  if (wasHidden) {
+    el.style.visibility = 'hidden';
+    el.style.display = 'flex'; // Use flex as per the glass-module style
+  }
+
   const rect = el.getBoundingClientRect();
+  
+  // If we were just getting dimensions, hide it again but keep it visible if it's the help target
+  if (wasHidden) {
+    el.style.visibility = '';
+    // If it's the rotation container, we actually WANT to show it during the help step
+    if (elementId === 'rotation-container') {
+      el.style.display = 'flex';
+      el.dataset.wasForcedVisible = 'true';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
   const screenHeight = window.innerHeight;
   const isTopHalf = rect.top < screenHeight / 2;
 
@@ -275,7 +295,7 @@ function pointArrowAt(elementId) {
     // Target is in bottom half, point DOWN from ABOVE
     currentArrow.innerHTML = '⬇️';
     currentArrow.style.left = `${rect.left + rect.width / 2}px`;
-    currentArrow.style.top = `${rect.top - 50}px`; // 40-50px above
+    currentArrow.style.top = `${rect.top - 50}px`;
   }
   
   document.body.appendChild(currentArrow);
@@ -285,6 +305,13 @@ function removeArrow() {
   if (currentArrow) {
     currentArrow.remove();
     currentArrow = null;
+  }
+  
+  // Hide the rotation container if it was forced visible for help
+  const rotationContainer = document.getElementById('rotation-container');
+  if (rotationContainer && rotationContainer.dataset.wasForcedVisible === 'true') {
+    rotationContainer.style.display = 'none';
+    delete rotationContainer.dataset.wasForcedVisible;
   }
 }
 
